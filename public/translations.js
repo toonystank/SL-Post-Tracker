@@ -19,7 +19,15 @@ const translations = {
         footer_disclaimer: "Important Disclaimer",
         footer_text: "This website is an independent utility project and is <strong>not affiliated with, endorsed by, or a product of Sri Lanka Post</strong>. Data is securely relayed from official postal endpoints for convenience purposes only.",
         recent_searches: "Recent:",
-        share_whatsapp: "Share"
+        share_whatsapp: "Share",
+        err_status_error: "Error",
+        err_no_record: "No Record Found",
+        err_no_tracking: "No tracking information found.",
+        err_captcha_failed: "Invalid CAPTCHA code. Please try again.",
+        err_overall: "An overall error occurred. Please try again.",
+        status_in_transit: "In Transit",
+        status_delivered: "Delivered",
+        status_returned: "Returned"
     },
     si: {
         nav_home: "මුල් පිටුව",
@@ -41,7 +49,15 @@ const translations = {
         footer_disclaimer: "වැදගත් වියාචනය",
         footer_text: "මෙම වෙබ් අඩවිය ස්වාධීන ව්‍යාපෘතියක් වන අතර එය <strong>ශ්‍රී ලංකා තැපෑලට අනුබද්ධිත, අනුමත කරන ලද හෝ එහි නිෂ්පාදනයක් නොවේ</strong>. දත්ත පහසුව සඳහා පමණක් නිල තැපැල් පද්ධති හරහා ලබා ගනී.",
         recent_searches: "මෑතකදී සෙවූ :",
-        share_whatsapp: "බෙදාගන්න"
+        share_whatsapp: "බෙදාගන්න",
+        err_status_error: "දෝෂයකි",
+        err_no_record: "වාර්තාවක් හමු නොවීය",
+        err_no_tracking: "ලුහුබැඳීමේ තොරතුරු හමු නොවීය.",
+        err_captcha_failed: "වලංගු නොවන CAPTCHA කේතය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        err_overall: "සමස්ත දෝෂයක් ඇති විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        status_in_transit: "ප්‍රවාහනයේ",
+        status_delivered: "බෙදා හරින ලදි",
+        status_returned: "ආපසු එවන ලදි"
     },
     ta: {
         nav_home: "முகப்பு",
@@ -63,6 +79,14 @@ const translations = {
         footer_disclaimer: "முக்கிய மறுப்பு",
         footer_text: "இந்த இணையதளம் ஒரு சுயாதீன திட்டமாகும், மேலும் இது <strong>இலங்கை தபாலுடன் இணைக்கப்படவில்லை, அங்கீகரிக்கப்படவில்லை அல்லது அதன் தயாரிப்பு அல்ல</strong>. வசதிக்காக மட்டுமே அதிகாரப்பூர்வ தபால் அமைப்புகளிலிருந்து தரவு பாதுகாப்பாக பெறப்படுகிறது.",
         recent_searches: "சமீபத்தியவை:",
-        share_whatsapp: "பகிர்"
+        share_whatsapp: "பகிர்",
+        err_status_error: "பிழை",
+        err_no_record: "பதிவு இல்லை",
+        err_no_tracking: "கண்காணிப்பு தகவல் கிடைக்கவில்லை.",
+        err_captcha_failed: "தவறான CAPTCHA குறியீடு. மீண்டும் முயற்சிக்கவும்.",
+        err_overall: "ஒட்டுமொத்த பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+        status_in_transit: "போக்குவரத்தில்",
+        status_delivered: "வழங்கப்பட்டது",
+        status_returned: "திருப்பி அனுப்பப்பட்டது"
     }
 };

@@ -1,0 +1,17 @@
+{
+    "name": "SL Post Tracker",
+    "short_name": "SL Post",
+    "description": "Free, fast, and unified Sri Lanka Post parcel tracking & postal cost calculators.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#09090b",
+    "theme_color": "#f97316",
+    "icons": [
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

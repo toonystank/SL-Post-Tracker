@@ -2,6 +2,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TRANSLATION LOGIC ---
     let currentLang = localStorage.getItem('slpost_lang') || 'en';
 
+    function t(key, fallback) {
+        if (typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang][key]) {
+            return translations[currentLang][key];
+        }
+        return fallback || key;
+    }
+
     function translatePage(lang) {
         if (typeof translations === 'undefined' || !translations[lang]) return;
         currentLang = lang;
@@ -237,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             } catch (error) {
-                errorMessage.textContent = "An overall error occurred. Please try again.";
+                errorMessage.textContent = t('err_overall', 'An overall error occurred. Please try again.');
                 errorMessage.classList.remove('hidden');
             } finally {
                 trackBtn.classList.remove('loading');
@@ -279,22 +286,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateTrackingCard(barcode, events, error) {
         if (error) {
             return `<div class="tracking-card">
-                        <div class="results-header"><div><h2>${barcode.toUpperCase()}</h2><p class="status-badge error">Error</p></div></div>
+                        <div class="results-header"><div><h2>${barcode.toUpperCase()}</h2><p class="status-badge error">${t('err_status_error', 'Error')}</p></div></div>
                         <div class="error-message">${error}</div>
                     </div>`;
         }
 
         if (!events || events.length === 0) {
             return `<div class="tracking-card">
-                        <div class="results-header"><div><h2>${barcode.toUpperCase()}</h2><p class="status-badge error">No Record Found</p></div></div>
-                        <div class="timeline"><div class="timeline-item"><div class="timeline-content"><div class="timeline-title">No tracking information found.</div></div></div></div>
+                        <div class="results-header"><div><h2>${barcode.toUpperCase()}</h2><p class="status-badge error">${t('err_no_record', 'No Record Found')}</p></div></div>
+                        <div class="timeline"><div class="timeline-item"><div class="timeline-content"><div class="timeline-title">${t('err_no_tracking', 'No tracking information found.')}</div></div></div></div>
                     </div>`;
         }
 
         // Determine if this is a COD key-value format (usually 2 columns, first column ends up as keys)
         let isKeyValueFormat = events.length > 0 && Object.keys(events[0]).length <= 2 && events.some(e => e.col_0 && e.col_0.toLowerCase().includes('status'));
 
-        let statusText = "In Transit";
+        let statusText = t('status_in_transit', 'In Transit');
         let statusClass = "transit";
         let resolvedBarcode = barcode.toUpperCase();
         let timelineHtml = '';

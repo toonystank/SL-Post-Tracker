@@ -6,7 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
         content="A free, fast, and unified alternative to track Sri Lanka Post parcels (COD & Courier) and calculate postal costs effortlessly.">
+    <meta name="theme-color" content="#f97316">
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="SL Post Tracker - Unified Tracking & Tools">
+    <meta property="og:description"
+        content="Free, fast, and unified Sri Lanka Post parcel tracking & postal cost calculators. Track COD & Courier parcels instantly.">
+    <meta property="og:image" content="/icon-512.png">
+    <meta property="og:url" content="https://sl-post-tracker.vercel.app">
+    <meta name="twitter:card" content="summary_large_image">
+
     <title>SL Post Tracker - Unified Tracking & Tools</title>
+    <link rel="icon" type="image/png" href="/icon-512.png">
+    <link rel="apple-touch-icon" href="/icon-512.png">
+    <link rel="manifest" href="/manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -156,6 +170,12 @@
 
     <script src="translations.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => { });
+        }
+    </script>
 </body>
 
 </html>
