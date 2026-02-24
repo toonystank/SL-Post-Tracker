@@ -160,6 +160,14 @@ app.post('/api/courier/track', async (req, res) => {
             if (i === 0) return; // Skip headers mostly
             const columns = $(row).find('td');
             if (columns.length > 0) {
+                // If it's a single column and contains error-like text, it's not tracking data
+                if (columns.length === 1) {
+                    const text = $(columns[0]).text().toLowerCase();
+                    if (text.includes('enter the code') || text.includes('not match') || text.includes('invalid') || text.includes('validation code')) {
+                        return; // skip this row
+                    }
+                }
+
                 const step = {};
                 columns.each((j, col) => {
                     step[`col_${j}`] = $(col).text().trim();
@@ -167,6 +175,12 @@ app.post('/api/courier/track', async (req, res) => {
                 trackingData.push(step);
             }
         });
+
+        if (trackingData.length === 0) {
+            // If we parsed no valid tracking steps but didn't hit the specific 'No Record' text,
+            // assume it's an invalid captcha/error state from SLP.
+            return res.status(400).json({ error: 'Invalid CAPTCHA code or Tracking Number. Please try again.' });
+        }
 
         res.json({
             success: true,
