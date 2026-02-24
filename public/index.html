@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SL PostMate Pro - Unified Tracking & Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="background-elements">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <main class="container">
+        <header class="header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12Z"
+                        stroke="url(#paint0_linear)" stroke-width="2" />
+                    <path d="M7 12L10.5 15.5L17 9" stroke="url(#paint1_linear)" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <defs>
+                        <linearGradient id="paint0_linear" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#3B82F6" />
+                            <stop offset="1" stop-color="#8B5CF6" />
+                        </linearGradient>
+                        <linearGradient id="paint1_linear" x1="7" y1="12.25" x2="17" y2="12.25"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#3B82F6" />
+                            <stop offset="1" stop-color="#8B5CF6" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>SL PostMate Pro</span>
+            </div>
+            <nav id="navbar">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#tools" class="nav-link">Track Package</a>
+                <a href="#calculators" class="nav-link">Calculators</a>
+            </nav>
+        </header>
+
+        <section class="hero" id="home">
+            <h1>The All-In-One <span class="gradient-text">Postal Tracker</span></h1>
+            <p class="hero-subtitle">Say goodbye to confusing interfaces. This is your completely free, easy-to-use
+                alternative to the official Sri Lanka Post website. Find all your postal tools in one place.</p>
+        </section>
+
+        <section id="tools" class="tracking-section">
+            <div class="glass-panel main-tracker">
+                <div class="tab-header">
+                    <h2>Track Any Parcel</h2>
+                    <p>Enter one or multiple barcodes separated by commas (COD or SLP Courier).</p>
+                </div>
+
+                <form id="track-form" class="search-box courier-box">
+                    <div class="input-group-vertical">
+                        <div class="input-wrapper">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="barcode" name="barcode"
+                                placeholder="e.g. BD004902491LK or RR123456789LK" required autocomplete="off">
+                        </div>
+
+                        <div id="dynamic-captcha-container" class="captcha-container hidden">
+                            <div class="captcha-image-wrapper">
+                                <img id="captcha-img" src="" alt="Loading Captcha..." class="hidden">
+                                <div id="captcha-loader" class="small-loader"></div>
+                            </div>
+                            <button type="button" id="refresh-captcha" class="icon-btn" title="Refresh Captcha">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
+                                    </path>
+                                </svg>
+                            </button>
+                            <div class="input-wrapper captcha-input-wrapper">
+                                <input type="text" id="courier-captcha" placeholder="SLP Courier Security Code"
+                                    autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="track-btn">
+                        <span>Track Parcel</span>
+                        <div class="loader hidden"></div>
+                    </button>
+                </form>
+                <div id="error-message" class="error-message hidden"></div>
+
+                <div id="multi-results-section" class="multi-results hidden">
+                    <!-- Dynamic tracking cards will be injected here -->
+                </div>
+            </div>
+
+            <!-- Calculators Embed -->
+            <div id="calculators" class="glass-panel main-tracker mt-2" style="margin-top: 3rem; padding: 2.5rem;">
+                <div class="tab-header">
+                    <h2>Cost Calculators</h2>
+                    <p>Select a calculator to securely connect to official Sri Lanka Post tools.</p>
+
+                    <div class="calc-switcher">
+                        <button class="calc-btn active" data-src="https://bepost.lk/m/cal/">COD Calculator</button>
+                        <button class="calc-btn" data-src="https://bepost.lk/m/callo/">Local Postage</button>
+                        <button class="calc-btn" data-src="https://bepost.lk/m/calf/">Foreign Postage</button>
+                    </div>
+                </div>
+
+                <div class="iframe-container">
+                    <iframe id="calc-iframe" src="https://bepost.lk/m/cal/" frameborder="0"
+                        title="SL Post Calculator"></iframe>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
