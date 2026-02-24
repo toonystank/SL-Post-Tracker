@@ -1,7 +1,7 @@
 {
   "name": "sl-post-tracker",
   "version": "1.0.0",
-  "description": "",
+  "description": "A free, fast, and unified alternative to track Sri Lanka Post parcels (COD & Courier) and calculate postal costs effortlessly.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
