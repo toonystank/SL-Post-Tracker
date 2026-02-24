@@ -511,8 +511,37 @@ h2 {
 
 /* Responsive */
 @media (max-width: 640px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .logo {
+        font-size: 1.25rem;
+    }
+
+    nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.25rem;
+    }
+
+    .nav-link {
+        font-size: 0.9rem;
+    }
+
     h1 {
-        font-size: 2.5rem;
+        font-size: 2.15rem;
+        line-height: 1.15;
+    }
+
+    .hero p.hero-subtitle {
+        font-size: 1.05rem;
     }
 
     .search-box {
@@ -520,6 +549,7 @@ h2 {
         background: transparent;
         border: none;
         box-shadow: none;
+        padding: 0;
     }
 
     .input-wrapper {
@@ -527,10 +557,37 @@ h2 {
         border: 1px solid var(--glass-border);
         border-radius: 0.875rem;
         padding: 1rem;
+        margin-bottom: 0px;
+    }
+
+    .input-group-vertical {
         margin-bottom: 1rem;
     }
 
     .btn-primary {
+        width: 100%;
+    }
+
+    .results {
+        padding: 1.5rem;
+    }
+
+    .tracking-card {
+        padding: 1.25rem;
+    }
+
+    .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .captcha-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .captcha-image-wrapper {
         width: 100%;
     }
 }
