@@ -63,6 +63,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const captchaLoader = document.getElementById('captcha-loader');
     const refreshCaptchaBtn = document.getElementById('refresh-captcha');
 
+    const recentSearchesContainer = document.getElementById('recent-searches-container');
+    const recentChipsContainer = document.getElementById('recent-chips');
+
+    // --- RECENT SEARCH LOGIC ---
+    let recentSearches = [];
+    try {
+        recentSearches = JSON.parse(localStorage.getItem('slpost_recent_searches') || '[]');
+    } catch {
+        recentSearches = [];
+    }
+
+    function renderRecentSearches() {
+        if (!recentSearchesContainer || !recentChipsContainer) return;
+
+        if (recentSearches.length === 0) {
+            recentSearchesContainer.classList.add('hidden');
+            return;
+        }
+
+        recentSearchesContainer.classList.remove('hidden');
+        recentChipsContainer.innerHTML = '';
+
+        recentSearches.forEach(barcode => {
+            const chip = document.createElement('div');
+            chip.className = 'recent-chip';
+            chip.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> ${barcode}`;
+
+            // Quick click to re-search
+            chip.addEventListener('click', () => {
+                barcodeInput.value = barcode;
+                // Dispatch input event to trigger auto-detect
+                barcodeInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+                // Add slight delay before submitting if captcha is needed and loading
+                setTimeout(() => {
+                    if (trackForm) {
+                        trackForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                    }
+                }, 100);
+            });
+
+            recentChipsContainer.appendChild(chip);
+        });
+    }
+
+    // Expose save globally for track results
+    window.saveRecentSearches = function (newBarcodes) {
+        newBarcodes.forEach(code => {
+            recentSearches = recentSearches.filter(b => b !== code);
+            recentSearches.unshift(code);
+        });
+
+        if (recentSearches.length > 3) {
+            recentSearches = recentSearches.slice(0, 3);
+        }
+
+        localStorage.setItem('slpost_recent_searches', JSON.stringify(recentSearches));
+        renderRecentSearches();
+    };
+
+    renderRecentSearches();
+
     let currentSessionCookie = '';
     let captchaLoaded = false;
     let needsCaptcha = false;
@@ -150,14 +212,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const results = await Promise.all(promises);
 
                 let hasCaptchaError = false;
+                let successfulBarcodes = [];
 
                 results.forEach(result => {
                     const cardHtml = generateTrackingCard(result.barcode, result.data, result.error);
                     multiResultsSection.insertAdjacentHTML('beforeend', cardHtml);
+
                     if (result.error && result.error.toLowerCase().includes('captcha')) {
                         hasCaptchaError = true;
+                    } else if (!result.error && result.data && result.data.length > 0) {
+                        successfulBarcodes.push(result.barcode.toUpperCase());
                     }
                 });
+
+                if (successfulBarcodes.length > 0) {
+                    saveRecentSearches(successfulBarcodes);
+                }
 
                 multiResultsSection.classList.remove('hidden');
 

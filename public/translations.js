@@ -17,7 +17,8 @@ const translations = {
         calc_local: "Local Postage",
         calc_foreign: "Foreign Postage",
         footer_disclaimer: "Important Disclaimer",
-        footer_text: "This website is an independent utility project and is <strong>not affiliated with, endorsed by, or a product of Sri Lanka Post</strong>. Data is securely relayed from official postal endpoints for convenience purposes only."
+        footer_text: "This website is an independent utility project and is <strong>not affiliated with, endorsed by, or a product of Sri Lanka Post</strong>. Data is securely relayed from official postal endpoints for convenience purposes only.",
+        recent_searches: "Recent:"
     },
     si: {
         nav_home: "මුල් පිටුව",
@@ -37,7 +38,8 @@ const translations = {
         calc_local: "දේශීය තැපැල් ගාස්තු",
         calc_foreign: "විදේශීය තැපැල් ගාස්තු",
         footer_disclaimer: "වැදගත් වියාචනය",
-        footer_text: "මෙම වෙබ් අඩවිය ස්වාධීන ව්‍යාපෘතියක් වන අතර එය <strong>ශ්‍රී ලංකා තැපෑලට අනුබද්ධිත, අනුමත කරන ලද හෝ එහි නිෂ්පාදනයක් නොවේ</strong>. දත්ත පහසුව සඳහා පමණක් නිල තැපැල් පද්ධති හරහා ලබා ගනී."
+        footer_text: "මෙම වෙබ් අඩවිය ස්වාධීන ව්‍යාපෘතියක් වන අතර එය <strong>ශ්‍රී ලංකා තැපෑලට අනුබද්ධිත, අනුමත කරන ලද හෝ එහි නිෂ්පාදනයක් නොවේ</strong>. දත්ත පහසුව සඳහා පමණක් නිල තැපැල් පද්ධති හරහා ලබා ගනී.",
+        recent_searches: "මෑතකදී සෙවූ :"
     },
     ta: {
         nav_home: "முகப்பு",
@@ -57,6 +59,7 @@ const translations = {
         calc_local: "உள்ளூர் தபால் கட்டணம்",
         calc_foreign: "வெளிநாட்டு தபால் கட்டணம்",
         footer_disclaimer: "முக்கிய மறுப்பு",
-        footer_text: "இந்த இணையதளம் ஒரு சுயாதீன திட்டமாகும், மேலும் இது <strong>இலங்கை தபாலுடன் இணைக்கப்படவில்லை, அங்கீகரிக்கப்படவில்லை அல்லது அதன் தயாரிப்பு அல்ல</strong>. வசதிக்காக மட்டுமே அதிகாரப்பூர்வ தபால் அமைப்புகளிலிருந்து தரவு பாதுகாப்பாக பெறப்படுகிறது."
+        footer_text: "இந்த இணையதளம் ஒரு சுயாதீன திட்டமாகும், மேலும் இது <strong>இலங்கை தபாலுடன் இணைக்கப்படவில்லை, அங்கீகரிக்கப்படவில்லை அல்லது அதன் தயாரிப்பு அல்ல</strong>. வசதிக்காக மட்டுமே அதிகாரப்பூர்வ தபால் அமைப்புகளிலிருந்து தரவு பாதுகாப்பாக பெறப்படுகிறது.",
+        recent_searches: "சமீபத்தியவை:"
     }
 };
