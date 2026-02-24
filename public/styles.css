@@ -1,16 +1,22 @@
 :root {
-    --bg-color: #0d0f16;
+    --bg-color: #09090b;
+    /* Rich black/dark charcoal */
     --text-primary: #ffffff;
-    --text-secondary: #94a3b8;
-    --accent-1: #3b82f6;
+    --text-secondary: #a1a1aa;
+    /* Warm gray */
+    --accent-1: #f97316;
+    /* Vibrant Orange */
     --accent-2: #8b5cf6;
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    /* Warm Violet */
+    --glass-bg: rgba(24, 24, 27, 0.4);
+    /* Slightly tinted dark gray */
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 
     --status-success: #10b981;
     --status-transit: #f59e0b;
-    --status-error: #ef4444;
+    --status-error: #f43f5e;
+    /* Softer, warmer red/pink */
 }
 
 * {
@@ -51,17 +57,17 @@ body {
 .blob-1 {
     top: -10%;
     left: -10%;
-    width: 50vw;
-    height: 50vw;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
 }
 
 .blob-2 {
-    bottom: -10%;
+    bottom: -15%;
     right: -10%;
-    width: 60vw;
-    height: 60vw;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+    width: 70vw;
+    height: 70vw;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
     animation-delay: -5s;
 }
 
@@ -152,7 +158,7 @@ h1 {
 }
 
 .gradient-text {
-    background: linear-gradient(90deg, #60a5fa, #c084fc);
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -265,9 +271,9 @@ input::placeholder {
 }
 
 .btn-primary:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    opacity: 0.95;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(249, 115, 22, 0.4);
 }
 
 .btn-primary:active {
@@ -742,4 +748,30 @@ h2 {
     width: 100%;
     height: 100%;
     border: none;
+}
+
+/* --- FOOTER --- */
+.site-footer {
+    text-align: center;
+    padding: 3rem 1rem;
+    margin-top: auto;
+    /* Push to bottom */
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+}
+
+.footer-content {
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.footer-disclaimer {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.footer-copy {
+    opacity: 0.7;
 }
