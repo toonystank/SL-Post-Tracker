@@ -41,6 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- THEME TOGGLE (Light/Dark) ---
+    const savedTheme = localStorage.getItem('slpost_theme') ||
+        (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('slpost_theme', next);
+        });
+    }
 
     // --- CALCULATORS iframe SWITCHER ---
     const calcBtns = document.querySelectorAll('.calc-btn');
@@ -205,6 +219,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             trackBtn.classList.add('loading');
             trackBtn.disabled = true;
+
+            // Show skeleton loading cards
+            const skeletonHtml = barcodes.map(() => `
+                <div class="skeleton-card">
+                    <div class="skeleton-line title"></div>
+                    <div class="skeleton-line badge"></div>
+                    <div class="skeleton-grid">
+                        <div class="skeleton-grid-item"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                        <div class="skeleton-grid-item"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                        <div class="skeleton-grid-item"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                    </div>
+                </div>
+            `).join('');
+            multiResultsSection.innerHTML = skeletonHtml;
+            multiResultsSection.classList.remove('hidden');
 
             try {
                 // Process concurrently
@@ -405,6 +434,25 @@ document.addEventListener('DOMContentLoaded', () => {
             statusClass = "error";
         }
 
+        // Build progress stepper (for COD key-value results)
+        let stepperHtml = '';
+        if (isKeyValueFormat) {
+            const steps = ['Accepted', 'In Transit', 'Arrived', 'Delivered'];
+            let activeStep = 0;
+            if (slStatus.includes('transit') || slStatus.includes('dispatched')) activeStep = 1;
+            if (slStatus.includes('arrived') || slStatus.includes('received')) activeStep = 2;
+            if (slStatus.includes('delivered') || slStatus.includes('settled') || slStatus.includes('success')) activeStep = 3;
+            if (slStatus.includes('returned')) activeStep = -1; // special case
+
+            stepperHtml = `<div class="progress-stepper">${steps.map((s, i) => {
+                let cls = '';
+                if (activeStep === -1) cls = i === 0 ? 'active error-step' : '';
+                else if (i < activeStep) cls = 'completed';
+                else if (i === activeStep) cls = 'active';
+                return `<div class="step ${cls}"><div class="step-dot"></div><span class="step-label">${s}</span></div>`;
+            }).join('<div class="step-line"></div>')}</div>`;
+        }
+
         // Build a plain-text summary for WhatsApp sharing
         let shareText = `📦 *SL Post Tracker*\n\n`;
         shareText += `Tracking: *${resolvedBarcode}*\n`;
@@ -441,8 +489,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span data-i18n="share_whatsapp">Share</span>
                     </a>
                 </div>
+                ${stepperHtml}
                 ${timelineHtml}
             </div>
         `;
+    }
+
+    // --- SHAREABLE TRACKING URL ---
+    // If URL is /track/BARCODE123, auto-fill and trigger tracking
+    const pathMatch = window.location.pathname.match(/^\/track\/([A-Za-z0-9,]+)$/);
+    if (pathMatch && barcodeInput && trackForm) {
+        const autoBarcode = decodeURIComponent(pathMatch[1]);
+        barcodeInput.value = autoBarcode;
+        // Trigger input event so captcha detection fires
+        barcodeInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // If it needs captcha, don't auto-submit — let the user fill captcha first
+        const barcodes = autoBarcode.split(',').map(b => b.trim());
+        const hasCourier = barcodes.some(b => isCourier(b));
+        if (!hasCourier) {
+            // Auto-submit after a short delay for COD barcodes
+            setTimeout(() => trackForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })), 500);
+        }
+        // Scroll to the tracking section
+        document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' });
     }
 });

@@ -216,6 +216,12 @@ app.post('/api/courier/track', async (req, res) => {
     }
 });
 
+// --- SHAREABLE TRACKING URL ---
+// Serves index.html for /track/:barcode so the frontend can auto-fill and track
+app.get('/track/:barcode', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // --- START SERVER ---
 if (require.main === module) {
     app.listen(PORT, () => {
