@@ -149,7 +149,7 @@ app.post('/api/courier/track', async (req, res) => {
             return res.status(400).json({ error: 'Invalid CAPTCHA code. Please try again.' });
         }
 
-        if (response.data.includes('No Record Found') || errorText.includes('no record found')) {
+        if (response.data.includes('No Record Found') || errorText.includes('no record found') || errorText.includes('no tracking information is available')) {
             return res.json({ success: true, tracking: [] });
         }
 
@@ -157,21 +157,28 @@ app.post('/api/courier/track', async (req, res) => {
 
         // The courier tracker uses tables similarly. Let's extract any tables found.
         $('table tr').each((i, row) => {
-            if (i === 0) return; // Skip headers mostly
+            // Skip headers mostly, or any rows containing form elements (search box, captcha)
+            if (i === 0 || $(row).find('input, select, button, form, img').length > 0) return;
+
             const columns = $(row).find('td');
             if (columns.length > 0) {
-                // If it's a single column and contains error-like text, it's not tracking data
-                if (columns.length === 1) {
-                    const text = $(columns[0]).text().toLowerCase();
-                    if (text.includes('enter the code') || text.includes('not match') || text.includes('invalid') || text.includes('validation code')) {
-                        return; // skip this row
-                    }
+                const step = {};
+                let fullRowText = '';
+
+                columns.each((j, col) => {
+                    const cellText = $(col).text().trim();
+                    step[`col_${j}`] = cellText;
+                    fullRowText += ' ' + cellText.toLowerCase();
+                });
+
+                // Check if this row is actually an SLP error message instead of real tracking data
+                if (fullRowText.includes('enter the code') || fullRowText.includes('not match') || fullRowText.includes('invalid') || fullRowText.includes('validation code')) {
+                    return; // skip this row
                 }
 
-                const step = {};
-                columns.each((j, col) => {
-                    step[`col_${j}`] = $(col).text().trim();
-                });
+                // If a row is entirely empty or just whitespace, skip it
+                if (fullRowText.trim().length === 0) return;
+
                 trackingData.push(step);
             }
         });
