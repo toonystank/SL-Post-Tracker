@@ -41,23 +41,31 @@
                 <span>SL Post Tracker</span>
             </div>
             <nav id="navbar">
-                <a href="#home" class="nav-link active">Home</a>
-                <a href="#tools" class="nav-link">Track Package</a>
-                <a href="#calculators" class="nav-link">Calculators</a>
+                <a href="#home" class="nav-link active" data-i18n="nav_home">Home</a>
+                <a href="#tools" class="nav-link" data-i18n="nav_track">Track Package</a>
+                <a href="#calculators" class="nav-link" data-i18n="nav_calc">Calculators</a>
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="si">සිං</button>
+                    <button class="lang-btn" data-lang="ta">தமிழ்</button>
+                </div>
             </nav>
         </header>
 
         <section class="hero" id="home">
-            <h1>The All-In-One <span class="gradient-text">Postal Tracker</span></h1>
-            <p class="hero-subtitle">Say goodbye to confusing interfaces. This is your completely free, easy-to-use
+            <h1 id="hero-title"><span data-i18n="hero_title_1">The All-In-One </span><span class="gradient-text"
+                    data-i18n="hero_title_2">Postal Tracker</span></h1>
+            <p class="hero-subtitle" data-i18n="hero_subtitle">Say goodbye to confusing interfaces. This is your
+                completely free, easy-to-use
                 alternative to the official Sri Lanka Post website. Find all your postal tools in one place.</p>
         </section>
 
         <section id="tools" class="tracking-section">
             <div class="glass-panel main-tracker">
                 <div class="tab-header">
-                    <h2>Track Any Parcel</h2>
-                    <p>Enter one or multiple barcodes separated by commas (COD or SLP Courier).</p>
+                    <h2 data-i18n="track_title">Track Any Parcel</h2>
+                    <p data-i18n="track_subtitle">Enter one or multiple barcodes separated by commas (COD or SLP
+                        Courier).</p>
                 </div>
 
                 <form id="track-form" class="search-box courier-box">
@@ -69,7 +77,8 @@
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                             <input type="text" id="barcode" name="barcode"
-                                placeholder="e.g. BD004902491LK or RR123456789LK" required autocomplete="off">
+                                placeholder="e.g. BD004902491LK or RR123456789LK" required autocomplete="off"
+                                data-i18n-placeholder="track_placeholder">
                         </div>
 
                         <div id="dynamic-captcha-container" class="captcha-container hidden">
@@ -88,13 +97,13 @@
                             </button>
                             <div class="input-wrapper captcha-input-wrapper">
                                 <input type="text" id="courier-captcha" placeholder="SLP Courier Security Code"
-                                    autocomplete="off">
+                                    autocomplete="off" data-i18n-placeholder="captcha_placeholder">
                             </div>
                         </div>
                     </div>
 
                     <button type="submit" class="btn-primary" id="track-btn">
-                        <span>Track Parcel</span>
+                        <span data-i18n="track_button">Track Parcel</span>
                         <div class="loader hidden"></div>
                     </button>
                 </form>
@@ -108,13 +117,17 @@
             <!-- Calculators Embed -->
             <div id="calculators" class="glass-panel main-tracker mt-2" style="margin-top: 3rem; padding: 2.5rem;">
                 <div class="tab-header">
-                    <h2>Cost Calculators</h2>
-                    <p>Select a calculator to securely connect to official Sri Lanka Post tools.</p>
+                    <h2 data-i18n="calc_title">Cost Calculators</h2>
+                    <p data-i18n="calc_subtitle">Select a calculator to securely connect to official Sri Lanka Post
+                        tools.</p>
 
                     <div class="calc-switcher">
-                        <button class="calc-btn active" data-src="https://bepost.lk/m/cal/">COD Calculator</button>
-                        <button class="calc-btn" data-src="https://bepost.lk/m/callo/">Local Postage</button>
-                        <button class="calc-btn" data-src="https://bepost.lk/m/calf/">Foreign Postage</button>
+                        <button class="calc-btn active" data-src="https://bepost.lk/m/cal/" data-i18n="calc_cod">COD
+                            Calculator</button>
+                        <button class="calc-btn" data-src="https://bepost.lk/m/callo/" data-i18n="calc_local">Local
+                            Postage</button>
+                        <button class="calc-btn" data-src="https://bepost.lk/m/calf/" data-i18n="calc_foreign">Foreign
+                            Postage</button>
                     </div>
                 </div>
 
@@ -128,13 +141,15 @@
 
     <footer class="site-footer">
         <div class="footer-content">
-            <p class="footer-disclaimer">Important Disclaimer</p>
-            <p class="footer-copy">This website is an independent utility project and is <strong>not affiliated with,
+            <p class="footer-disclaimer" data-i18n="footer_disclaimer">Important Disclaimer</p>
+            <p class="footer-copy" data-i18n="footer_text">This website is an independent utility project and is
+                <strong>not affiliated with,
                     endorsed by, or a product of Sri Lanka Post</strong>. Data is securely relayed from official postal
                 endpoints for convenience purposes only.</p>
         </div>
     </footer>
 
+    <script src="translations.js"></script>
     <script src="script.js"></script>
 </body>
 

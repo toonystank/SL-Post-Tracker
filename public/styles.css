@@ -142,6 +142,38 @@ nav {
     border-radius: 2px;
 }
 
+/* Language Switcher */
+.lang-switcher {
+    display: flex;
+    gap: 0.25rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    padding: 0.25rem;
+    border-radius: 2rem;
+    align-items: center;
+}
+
+.lang-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lang-btn:hover {
+    color: var(--text-primary);
+}
+
+.lang-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
 /* Hero Section */
 .hero {
     text-align: center;

@@ -1,4 +1,39 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- TRANSLATION LOGIC ---
+    let currentLang = localStorage.getItem('slpost_lang') || 'en';
+
+    function translatePage(lang) {
+        if (typeof translations === 'undefined' || !translations[lang]) return;
+        currentLang = lang;
+        localStorage.setItem('slpost_lang', lang);
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                el.innerHTML = translations[lang][key];
+            }
+        });
+
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (translations[lang][key]) {
+                el.placeholder = translations[lang][key];
+            }
+        });
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+        });
+    }
+
+    // Initialize translations
+    translatePage(currentLang);
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            translatePage(e.target.getAttribute('data-lang'));
+        });
+    });
+
 
     // --- CALCULATORS iframe SWITCHER ---
     const calcBtns = document.querySelectorAll('.calc-btn');
