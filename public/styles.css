@@ -349,41 +349,51 @@ input::placeholder {
 .recent-searches {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
     flex-wrap: wrap;
     animation: fadeIn 0.3s;
 }
 
 .recent-label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .recent-chips {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
 }
 
 .recent-chip {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.85rem;
-    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.35rem 0.85rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.35rem;
+    font-weight: 400;
 }
 
 .recent-chip:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.3);
+    color: var(--accent-1);
+    transform: translateY(-1px);
+}
+
+.recent-chip svg {
+    opacity: 0.5;
 }
 
 /* Results Section */
@@ -518,31 +528,40 @@ h2 {
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.25rem;
-    margin-top: 1.5rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
+    gap: 0.75rem;
+    margin-top: 1rem;
 }
 
 .info-group {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.info-group:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .info-label {
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
-    letter-spacing: 0.5px;
-    font-weight: 500;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.7;
 }
 
 .info-value {
-    font-size: 1.05rem;
+    font-size: 1rem;
     color: var(--text-primary);
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1.3;
 }
 
 .timeline-content {
