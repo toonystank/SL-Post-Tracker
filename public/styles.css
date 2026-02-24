@@ -549,7 +549,7 @@ h2 {
         background: transparent;
         border: none;
         box-shadow: none;
-        padding: 0;
+        padding: 0 1rem;
     }
 
     .input-wrapper {
