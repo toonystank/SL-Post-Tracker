@@ -536,6 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span data-i18n="share_whatsapp">${t('share_whatsapp', 'Share')}</span>
                         </a>
                     </div>
+                </div>
                 ${stepperHtml}
                 ${timelineHtml}
             </div>
