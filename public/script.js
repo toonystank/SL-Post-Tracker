@@ -56,16 +56,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- CALCULATORS iframe SWITCHER ---
+    // --- CALCULATORS iframe SWITCHER (lazy-loaded) ---
     const calcBtns = document.querySelectorAll('.calc-btn');
     const calcIframe = document.getElementById('calc-iframe');
+    let iframeLoaded = false;
+
+    function loadIframe(src) {
+        if (calcIframe) {
+            calcIframe.src = src || calcIframe.dataset.src || 'https://bepost.lk/m/cal/';
+            iframeLoaded = true;
+        }
+    }
+
+    // Lazy-load iframe when it scrolls into view
+    if (calcIframe && 'IntersectionObserver' in window) {
+        const iframeObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !iframeLoaded) {
+                loadIframe();
+                iframeObserver.disconnect();
+            }
+        }, { rootMargin: '200px' });
+        iframeObserver.observe(calcIframe);
+    }
 
     if (calcBtns.length > 0) {
         calcBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 calcBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                calcIframe.src = btn.getAttribute('data-src');
+                loadIframe(btn.getAttribute('data-src'));
             });
         });
     }
@@ -150,16 +169,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let captchaLoaded = false;
     let needsCaptcha = false;
 
-    // Standard UPU 13-char format for Registered(R), Parcel(C), EMS(E), Value(V)
-    function isCourier(barcode) {
-        return /^[RCEV][A-Z]\d{9}[A-Z]{2}$/i.test(barcode.trim());
+    // Classify barcode into 'cod', 'slp', or 'ambiguous'
+    // BD = always COD, BF = always SLP courier
+    // RA, BG = ambiguous (could be either), other UPU format = SLP
+    function classifyBarcode(barcode) {
+        const b = barcode.trim().toUpperCase();
+        // BD prefix: always COD
+        if (b.startsWith('BD')) return 'cod';
+        // BF prefix: always SLP courier
+        if (b.startsWith('BF')) return 'slp';
+        // RA or BG with UPU 13-char format: ambiguous
+        if (/^(RA|BG)\d{9}[A-Z]{2}$/i.test(b)) return 'ambiguous';
+        // Other standard UPU 13-char format (R, C, E, V prefixes): SLP courier
+        if (/^[RCEV][A-Z]\d{9}[A-Z]{2}$/i.test(b)) return 'slp';
+        // Everything else: COD
+        return 'cod';
+    }
+
+    // Backwards-compat helper: does this barcode need SLP courier (definite or possible)?
+    function mightNeedCourier(barcode) {
+        const type = classifyBarcode(barcode);
+        return type === 'slp';
     }
 
     // Auto-detect Couriers on Input
+    // Only show captcha upfront for definite SLP codes (BF, R*, C*, E*, V*)
+    // Ambiguous codes (RA, BG) will request captcha lazily on fallback
     if (barcodeInput) {
         barcodeInput.addEventListener('input', () => {
             const barcodes = barcodeInput.value.split(',').map(b => b.trim()).filter(b => b !== '');
-            needsCaptcha = barcodes.some(b => isCourier(b));
+            needsCaptcha = barcodes.some(b => classifyBarcode(b) === 'slp');
 
             if (needsCaptcha) {
                 captchaContainer.classList.remove('hidden');
@@ -202,12 +241,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Form Submit
+    let pendingFallback = null; // Stores barcode waiting for SLP courier retry
+    const trackBtnOriginalText = trackBtn ? trackBtn.textContent : 'Track Parcel';
+
     if (trackForm) {
         trackForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const inputValue = barcodeInput.value.trim();
             if (!inputValue) return;
+
+            // Clean up any existing fallback notices
+            document.querySelectorAll('.fallback-captcha-notice').forEach(n => n.remove());
+
+            // Check if we're in fallback mode (Track Parcel button acting as SLP retry)
+            if (pendingFallback) {
+                const captchaStr = captchaInput ? captchaInput.value.trim() : '';
+                if (!captchaStr) {
+                    alert('Please enter the CAPTCHA code first.');
+                    return;
+                }
+
+                trackBtn.classList.add('loading');
+                trackBtn.disabled = true;
+                trackBtn.textContent = '';
+
+                const slpResult = await trackCourier(pendingFallback.barcode, captchaStr);
+                const finalResult = (slpResult.data && slpResult.data.length > 0) ? slpResult : pendingFallback.codResult;
+
+                // Render the result
+                const cardHtml = generateTrackingCard(finalResult.barcode, finalResult.data, finalResult.error);
+                multiResultsSection.innerHTML = cardHtml;
+                multiResultsSection.classList.remove('hidden');
+
+                // Save to recent searches if successful
+                if (finalResult.data && finalResult.data.length > 0) {
+                    saveRecentSearches([finalResult.barcode.toUpperCase()]);
+                }
+
+                // Reset fallback state and button
+                pendingFallback.resolve(finalResult);
+                pendingFallback = null;
+                trackBtn.textContent = trackBtnOriginalText;
+                trackBtn.classList.remove('loading');
+                trackBtn.disabled = false;
+                return;
+            }
 
             // Reset UI state
             errorMessage.classList.add('hidden');
@@ -236,10 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
             multiResultsSection.classList.remove('hidden');
 
             try {
-                // Process concurrently
+                // Process concurrently, routing by barcode classification
                 const promises = barcodes.map(barcode => {
-                    if (isCourier(barcode)) {
+                    const type = classifyBarcode(barcode);
+                    if (type === 'slp') {
                         return trackCourier(barcode, captchaStr);
+                    } else if (type === 'ambiguous') {
+                        return trackWithFallback(barcode);
                     } else {
                         return trackCOD(barcode);
                     }
@@ -413,6 +495,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Fallback tracker for ambiguous codes (RA, BG): Try COD first, SLP if no results
+    async function trackWithFallback(barcode) {
+        // Step 1: Try COD (fast, no captcha)
+        const codResult = await trackCOD(barcode);
+        if (codResult.data && codResult.data.length > 0) {
+            return codResult; // COD had results, we're done
+        }
+
+        // Step 2: COD returned nothing — need SLP courier with captcha
+        // Clean up: remove skeleton loading and reset Track button
+        multiResultsSection.innerHTML = '';
+        multiResultsSection.classList.add('hidden');
+        trackBtn.classList.remove('loading');
+        trackBtn.disabled = false;
+
+        // Show captcha UI
+        captchaContainer.classList.remove('hidden');
+        captchaInput.required = true;
+
+        // Load captcha if not already loaded
+        if (!captchaLoaded) {
+            await loadCaptcha();
+        }
+
+        // Transform the Track Parcel button into "Retry as SLP Courier"
+        trackBtn.textContent = '🔄 Retry as SLP Courier';
+
+        // Show a small info notice (no separate button)
+        const fallbackNotice = document.createElement('div');
+        fallbackNotice.className = 'fallback-captcha-notice';
+        fallbackNotice.innerHTML = `
+            <p>📬 <strong>${barcode.toUpperCase()}</strong> was not found in the COD system. It may be an SLP Courier item.</p>
+            <p>Please solve the CAPTCHA above and click <strong>Retry as SLP Courier</strong> to track.</p>
+        `;
+        const trackSection = trackForm.closest('.bento-card') || trackForm.parentElement;
+        trackSection.appendChild(fallbackNotice);
+
+        // Set fallback state — the form submit handler will pick this up on next submit
+        return new Promise((resolve) => {
+            pendingFallback = { barcode, codResult, resolve };
+        });
+    }
+
     function generateTrackingCard(barcode, events, error) {
         if (error) {
             return `<div class="tracking-card">
@@ -435,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let statusClass = "transit";
         let resolvedBarcode = barcode.toUpperCase();
         let timelineHtml = '';
+        let stepperHtml = '';
 
         if (isKeyValueFormat) {
             // It's a Key-Value list (COD format)
@@ -491,40 +617,170 @@ document.addEventListener('DOMContentLoaded', () => {
             timelineHtml = `<div class="info-grid">${gridItems}</div>`;
 
         } else {
-            // It's a chronological timeline (Courier format)
-            const allText = JSON.stringify(events).toLowerCase();
-            if (allText.includes('delivered') || allText.includes('successful delivery')) {
-                statusText = "Delivered";
-            } else if (allText.includes('returned') || allText.includes('return to sender')) {
-                statusText = "Returned";
-            }
+            // Check if this is the SLP courier format from bepost.lk
+            // Format: 5 columns — ID, Identification No, Event, Data/Time, Location
+            const isSLPCourierViaBepost = events.length > 0 &&
+                Object.keys(events[0]).length >= 5 &&
+                events.some(e => /^\d{4}-\d{2}-\d{2}/.test(e.col_3 || ''));
 
-            timelineHtml = events.map((event, index) => {
-                const vals = Object.values(event).filter(v => v);
-                if (vals.length === 0) return '';
+            if (isSLPCourierViaBepost) {
+                // Filter out header rows (col_0 is "ID" or non-numeric)
+                const validEvents = events.filter(e => {
+                    const id = (e.col_0 || '').trim();
+                    return /^\d+$/.test(id); // Only keep rows with numeric ID
+                });
 
-                let dateStr = vals[0] || 'Unknown Date';
-                let titleStr = vals[vals.length - 1] || 'Status Update';
-                let descStr = vals.slice(1, -1).join(' - ');
-
-                if (vals.length >= 3) {
-                    dateStr = `${vals[0]} ${vals[1] || ''}`.trim();
-                    titleStr = vals[vals.length - 1];
-                    descStr = vals[vals.length - 2];
+                // Derive status from the latest event
+                if (validEvents.length > 0) {
+                    const latestEvent = (validEvents[validEvents.length - 1].col_2 || '').toLowerCase();
+                    if (latestEvent.includes('deliver') && (latestEvent.includes('success') || latestEvent.includes('delivered to'))) {
+                        statusText = 'Delivered';
+                    } else if (latestEvent.includes('receive') && latestEvent.includes('delivery office')) {
+                        statusText = 'Arrived at Delivery Office';
+                    } else if (latestEvent.includes('send') && latestEvent.includes('delivery')) {
+                        statusText = 'In Transit to Delivery Office';
+                    } else if (latestEvent.includes('receive') && latestEvent.includes('customer')) {
+                        statusText = 'Accepted';
+                    } else if (latestEvent.includes('return')) {
+                        statusText = 'Returned';
+                    } else {
+                        statusText = validEvents[validEvents.length - 1].col_2 || 'In Transit';
+                    }
                 }
 
-                const activeClass = index === 0 ? 'active' : '';
-                return `
-                    <div class="timeline-item ${activeClass}">
-                        <div class="timeline-date">${dateStr}</div>
-                        <div class="timeline-content">
-                            <div class="timeline-title">${titleStr}</div>
-                            ${descStr ? `<div class="timeline-desc">${descStr}</div>` : ''}
+                // Extract first and last locations for stepper tooltips
+                const firstLocation = validEvents.length > 0 ? (validEvents[0].col_4 || '').trim() : '';
+                const lastLocation = validEvents.length > 0 ? (validEvents[validEvents.length - 1].col_4 || '').trim() : '';
+
+                // Build progress stepper for SLP courier
+                const slpSteps = ['Accepted', 'In Transit', 'Arrived', 'Delivered'];
+                let slpActiveStep = 0;
+                let slpIsError = false;
+                const slpStatus = statusText.toLowerCase();
+
+                if (slpStatus.includes('transit') || slpStatus.includes('send')) {
+                    slpActiveStep = Math.max(slpActiveStep, 1);
+                }
+                if (slpStatus.includes('arrived') || slpStatus.includes('receive') && slpStatus.includes('delivery')) {
+                    slpActiveStep = Math.max(slpActiveStep, 2);
+                }
+                if (slpStatus.includes('delivered') || slpStatus.includes('success')) {
+                    slpActiveStep = Math.max(slpActiveStep, 3);
+                }
+                if (slpStatus.includes('return')) {
+                    slpSteps[3] = 'Returned';
+                    slpActiveStep = 3;
+                    slpIsError = true;
+                }
+
+                const slpStepTooltips = [
+                    firstLocation ? `Accepted at ${firstLocation}` : 'Accepted',
+                    firstLocation ? `Dispatched from ${firstLocation}` : 'In Transit',
+                    lastLocation ? `Arrived at ${lastLocation}` : 'Arrived',
+                    slpIsError
+                        ? (lastLocation ? `Returned from ${lastLocation}` : 'Returned')
+                        : (lastLocation ? `Delivered at ${lastLocation}` : 'Delivered')
+                ];
+
+                stepperHtml = `<div class="progress-stepper">${slpSteps.map((s, i) => {
+                    let cls = '';
+                    if (i < slpActiveStep) cls = 'completed';
+                    else if (i === slpActiveStep) {
+                        cls = slpIsError && i === 3 ? 'active error-step' : 'active';
+                    }
+                    const tooltipAttr = slpStepTooltips[i] ? ` data-tooltip="${slpStepTooltips[i]}"` : '';
+                    return `<div class="step ${cls}"${tooltipAttr}><div class="step-dot"></div><span class="step-label">${s}</span></div>`;
+                }).join('<div class="step-line"></div>')}</div>`;
+
+                // Build COD-style info-grid by mapping events to structured fields
+                let acceptingPO = '';
+                let dateAccepted = '';
+                let deliveryPO = '';
+                let receivedDate = '';
+
+                validEvents.forEach(event => {
+                    const eventText = (event.col_2 || '').toLowerCase();
+                    const location = (event.col_4 || '').trim();
+                    const dateTime = (event.col_3 || '').trim();
+
+                    if (eventText.includes('receive') && eventText.includes('customer')) {
+                        // "Receive item from customer" → Accepting PO + Date Accepted
+                        acceptingPO = location;
+                        dateAccepted = dateTime;
+                    } else if (eventText.includes('send') && eventText.includes('delivery')) {
+                        // "Send Item To Delivery Office" → Delivery PO
+                        deliveryPO = location;
+                    } else if (eventText.includes('receive') && eventText.includes('delivery office')) {
+                        // "Receive item at delivery office" → Received Date
+                        if (!deliveryPO) deliveryPO = location;
+                        receivedDate = dateTime;
+                    }
+                });
+
+                let gridItems = '';
+                if (acceptingPO) {
+                    gridItems += `<div class="info-group">
+                        <span class="info-label">Accepting Post Office</span>
+                        <span class="info-value">${acceptingPO}</span>
+                    </div>`;
+                }
+                if (dateAccepted) {
+                    gridItems += `<div class="info-group">
+                        <span class="info-label">Date Accepted</span>
+                        <span class="info-value">${dateAccepted}</span>
+                    </div>`;
+                }
+                if (deliveryPO) {
+                    gridItems += `<div class="info-group">
+                        <span class="info-label">Delivery Post Office</span>
+                        <span class="info-value">${deliveryPO}</span>
+                    </div>`;
+                }
+                if (receivedDate) {
+                    gridItems += `<div class="info-group">
+                        <span class="info-label">Received at Delivery Office</span>
+                        <span class="info-value">${receivedDate}</span>
+                    </div>`;
+                }
+
+                timelineHtml = `<div class="info-grid">${gridItems}</div>`;
+
+            } else {
+                // Generic chronological timeline (other courier formats)
+                const allText = JSON.stringify(events).toLowerCase();
+                if (allText.includes('delivered') || allText.includes('successful delivery')) {
+                    statusText = "Delivered";
+                } else if (allText.includes('returned') || allText.includes('return to sender')) {
+                    statusText = "Returned";
+                }
+
+                timelineHtml = events.map((event, index) => {
+                    const vals = Object.values(event).filter(v => v);
+                    if (vals.length === 0) return '';
+
+                    let dateStr = vals[0] || 'Unknown Date';
+                    let titleStr = vals[vals.length - 1] || 'Status Update';
+                    let descStr = vals.slice(1, -1).join(' - ');
+
+                    if (vals.length >= 3) {
+                        dateStr = `${vals[0]} ${vals[1] || ''}`.trim();
+                        titleStr = vals[vals.length - 1];
+                        descStr = vals[vals.length - 2];
+                    }
+
+                    const activeClass = index === 0 ? 'active' : '';
+                    return `
+                        <div class="timeline-item ${activeClass}">
+                            <div class="timeline-date">${dateStr}</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">${titleStr}</div>
+                                ${descStr ? `<div class="timeline-desc">${descStr}</div>` : ''}
+                            </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
-            timelineHtml = `<div class="timeline">${timelineHtml}</div>`;
+                    `;
+                }).join('');
+                timelineHtml = `<div class="timeline">${timelineHtml}</div>`;
+            }
         }
 
         // Assign styling classes dynamically based on the final status string
@@ -536,7 +792,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Build progress stepper (for COD key-value results)
-        let stepperHtml = '';
         if (isKeyValueFormat) {
             const steps = ['Accepted', 'In Transit', 'Arrived', 'Delivered'];
             let activeStep = 0;
@@ -654,9 +909,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // If it needs captcha, don't auto-submit — let the user fill captcha first
         const barcodes = autoBarcode.split(',').map(b => b.trim());
-        const hasCourier = barcodes.some(b => isCourier(b));
-        if (!hasCourier) {
-            // Auto-submit after a short delay for COD barcodes
+        const hasDefiniteCourier = barcodes.some(b => classifyBarcode(b) === 'slp');
+        if (!hasDefiniteCourier) {
+            // Auto-submit for COD and ambiguous barcodes (ambiguous tries COD first anyway)
             setTimeout(() => trackForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })), 500);
         }
         // Scroll to the tracking section
@@ -683,15 +938,35 @@ window.copyToClipboard = function (text, btn) {
     });
 };
 
-window.exportPdf = function (btn) {
-    if (typeof html2pdf === 'undefined') {
-        alert('PDF library is still loading. Please try again in a moment.');
-        return;
-    }
-
+window.exportPdf = async function (btn) {
     // Find the closest tracking card
     const card = btn.closest('.tracking-card');
     if (!card) return;
+
+    const origText = btn.innerHTML;
+
+    // Lazy-load html2pdf.js on first use
+    if (typeof html2pdf === 'undefined') {
+        btn.innerHTML = '⏳ Loading...';
+        btn.disabled = true;
+        try {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                script.crossOrigin = 'anonymous';
+                script.referrerPolicy = 'no-referrer';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        } catch (e) {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+            alert('Failed to load PDF library. Please check your connection and try again.');
+            return;
+        }
+        btn.disabled = false;
+    }
 
     // Hide share buttons temporarily so they don't appear in the PDF
     const shareActions = card.querySelector('.share-actions');
@@ -712,8 +987,6 @@ window.exportPdf = function (btn) {
 
     // Add a temporary wrapper class for PDF-specific styling (like text colors)
     card.classList.add('exporting-pdf');
-
-    const origText = btn.innerHTML;
     btn.innerHTML = '...';
 
     // Generate PDF

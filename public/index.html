@@ -25,8 +25,138 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://bepost.lk">
     <link rel="dns-prefetch" href="https://slpmail.slpost.gov.lk">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/styles.css">
+
+    <!-- Theme detection - prevent flash of wrong theme -->
+    <script>(function () { var t = localStorage.getItem('slpost_theme') || (matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark'); document.documentElement.setAttribute('data-theme', t) })()</script>
+
+    <!-- Critical CSS - above-the-fold styles inlined for instant render -->
+    <style>
+        :root {
+            --bg-color: #09090b;
+            --text-primary: #fff;
+            --text-secondary: #a1a1aa;
+            --accent-1: #f97316;
+            --accent-2: #8b5cf6;
+            --glass-bg: rgba(24, 24, 27, .4);
+            --glass-border: rgba(255, 255, 255, .05);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, .4)
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f5f5f7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #64748b;
+            --glass-bg: rgba(255, 255, 255, .7);
+            --glass-border: rgba(0, 0, 0, .08);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, .08)
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            transition: background-color .3s ease, color .3s ease
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            margin-bottom: 4rem
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -.5px
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            letter-spacing: -1px
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .hero p.hero-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 2.5rem auto;
+            line-height: 1.6
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        @media(max-width:640px) {
+            h1 {
+                font-size: 2.15rem;
+                line-height: 1.15
+            }
+
+            .container {
+                padding: 1rem
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 1.25rem;
+                margin-bottom: 2rem
+            }
+        }
+    </style>
+
+    <!-- Non-render-blocking Google Fonts -->
+    <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet"
+        media="print" onload="this.media='all'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    </noscript>
+
+    <!-- Non-render-blocking main stylesheet -->
+    <link rel="stylesheet" href="/styles.css" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="/styles.css">
+    </noscript>
 </head>
 
 <body>
@@ -172,8 +302,8 @@
                 </div>
 
                 <div class="iframe-container">
-                    <iframe id="calc-iframe" src="https://bepost.lk/m/cal/" frameborder="0"
-                        title="SL Post Calculator"></iframe>
+                    <iframe id="calc-iframe" src="about:blank" data-src="https://bepost.lk/m/cal/" frameborder="0"
+                        title="SL Post Calculator" loading="lazy"></iframe>
                 </div>
             </div>
         </section>
@@ -246,9 +376,6 @@
         </button>
     </nav>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-        integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="/translations.js" defer></script>
     <script src="/script.js" defer></script>
     <script>
