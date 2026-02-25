@@ -247,6 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const results = await Promise.all(promises);
 
+                // Clear skeleton loading cards before appending real results
+                multiResultsSection.innerHTML = '';
+
                 let hasCaptchaError = false;
                 let successfulBarcodes = [];
 
@@ -275,6 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 errorMessage.textContent = t('err_overall', 'An overall error occurred. Please try again.');
                 errorMessage.classList.remove('hidden');
+                multiResultsSection.classList.add('hidden');
+                multiResultsSection.innerHTML = '';
             } finally {
                 trackBtn.classList.remove('loading');
                 trackBtn.disabled = false;
@@ -439,17 +444,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isKeyValueFormat) {
             const steps = ['Accepted', 'In Transit', 'Arrived', 'Delivered'];
             let activeStep = 0;
-            if (slStatus.includes('transit') || slStatus.includes('dispatched')) activeStep = 1;
-            if (slStatus.includes('arrived') || slStatus.includes('received')) activeStep = 2;
-            if (slStatus.includes('delivered') || slStatus.includes('settled') || slStatus.includes('success')) activeStep = 3;
-            if (slStatus.includes('returned')) activeStep = -1; // special case
+            let isErrorFinished = false;
+
+            if (slStatus.includes('transit') || slStatus.includes('dispatched')) {
+                activeStep = Math.max(activeStep, 1);
+            }
+
+            const hasReceivedDate = events.some(e => {
+                const k = (e.col_0 || '').trim().toLowerCase();
+                return k === 'receiveddate' && (e.col_1 || '').trim() !== '';
+            });
+
+            if (slStatus.includes('arrived') || slStatus.includes('received') || slStatus.includes('pending') || hasReceivedDate) {
+                activeStep = Math.max(activeStep, 2);
+            }
+            if (slStatus.includes('delivered') || slStatus.includes('settled') || slStatus.includes('success')) {
+                activeStep = Math.max(activeStep, 3);
+            }
+            if (slStatus.includes('returned') || slStatus.includes('fail')) {
+                steps[3] = 'Returned';
+                activeStep = 3;
+                isErrorFinished = true;
+            }
+
+            const getMapVal = (key) => {
+                const e = events.find(ev => (ev.col_0 || '').trim().toLowerCase() === key);
+                return e ? (e.col_1 || '').trim().replace(/\bPO\b/g, 'Post Office') : '';
+            };
+            const acceptingPo = getMapVal('acceptingpo');
+            const deliveryPo = getMapVal('deliverypo');
+            const settledPo = getMapVal('posettled');
+
+            const stepTooltips = [
+                acceptingPo ? `Accepted at ${acceptingPo}` : 'Accepted',
+                acceptingPo ? `On transit from ${acceptingPo}` : 'In Transit',
+                deliveryPo ? `Arrived at ${deliveryPo}` : 'Arrived',
+                isErrorFinished
+                    ? (deliveryPo ? `Returned from ${deliveryPo}` : 'Returned')
+                    : (settledPo ? `Settled at ${settledPo}` : (deliveryPo ? `Delivered by ${deliveryPo}` : 'Delivered'))
+            ];
 
             stepperHtml = `<div class="progress-stepper">${steps.map((s, i) => {
                 let cls = '';
-                if (activeStep === -1) cls = i === 0 ? 'active error-step' : '';
-                else if (i < activeStep) cls = 'completed';
-                else if (i === activeStep) cls = 'active';
-                return `<div class="step ${cls}"><div class="step-dot"></div><span class="step-label">${s}</span></div>`;
+                if (i < activeStep) cls = 'completed';
+                else if (i === activeStep) {
+                    cls = isErrorFinished && i === 3 ? 'active error-step' : 'active';
+                }
+                const tooltipAttr = stepTooltips[i] ? ` data-tooltip="${stepTooltips[i]}"` : '';
+                return `<div class="step ${cls}"${tooltipAttr}><div class="step-dot"></div><span class="step-label">${s}</span></div>`;
             }).join('<div class="step-line"></div>')}</div>`;
         }
 
@@ -474,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        shareText += `\n🔗 Track at: ${window.location.origin}`;
+        shareText += `\n🔗 Track at: ${window.location.origin}/track/${resolvedBarcode}`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
         return `
@@ -484,11 +526,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h2>${resolvedBarcode}</h2>
                         <p class="status-badge ${statusClass}">${statusText}</p>
                     </div>
-                    <a href="${whatsappUrl}" target="_blank" rel="noopener" class="whatsapp-share-btn" title="Share on WhatsApp">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                        <span data-i18n="share_whatsapp">Share</span>
-                    </a>
-                </div>
+                    <div class="share-actions">
+                        <button class="copy-link-btn" onclick="copyToClipboard('${window.location.origin}/track/${resolvedBarcode}', this)" title="Copy Link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            <span data-i18n="share_link">${t('share_link', 'Copy Link')}</span>
+                        </button>
+                        <a href="${whatsappUrl}" target="_blank" rel="noopener" class="whatsapp-share-btn" title="Share on WhatsApp">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            <span data-i18n="share_whatsapp">${t('share_whatsapp', 'Share')}</span>
+                        </a>
+                    </div>
                 ${stepperHtml}
                 ${timelineHtml}
             </div>
@@ -515,3 +562,22 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' });
     }
 });
+
+// --- GLOBAL HELPERS ---
+window.copyToClipboard = function (text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const span = btn.querySelector('span');
+        const origText = span.innerText;
+        const origI18n = span.getAttribute('data-i18n');
+
+        span.innerText = typeof t === 'function' ? t('copied', 'Copied!') : 'Copied!';
+        span.removeAttribute('data-i18n');
+
+        setTimeout(() => {
+            span.innerText = origText;
+            if (origI18n) span.setAttribute('data-i18n', origI18n);
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
+};

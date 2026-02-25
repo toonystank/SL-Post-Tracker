@@ -523,14 +523,19 @@ input::placeholder {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.whatsapp-share-btn {
+.share-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.whatsapp-share-btn,
+.copy-link-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.45rem 0.9rem;
     border-radius: 2rem;
-    background: #25D366;
-    color: #fff;
     font-size: 0.8rem;
     font-weight: 600;
     text-decoration: none;
@@ -538,6 +543,12 @@ input::placeholder {
     transition: all 0.25s ease;
     white-space: nowrap;
     flex-shrink: 0;
+    border: none;
+}
+
+.whatsapp-share-btn {
+    background: #25D366;
+    color: #fff;
 }
 
 .whatsapp-share-btn:hover {
@@ -546,7 +557,20 @@ input::placeholder {
     box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
 }
 
-.whatsapp-share-btn svg {
+.copy-link-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+}
+
+.copy-link-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.whatsapp-share-btn svg,
+.copy-link-btn svg {
     flex-shrink: 0;
 }
 
@@ -1021,6 +1045,36 @@ h2 {
     align-items: center;
     gap: 0.5rem;
     min-width: 80px;
+    position: relative;
+    cursor: help;
+}
+
+.step[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    background: var(--bg-color, #1a1a1a);
+    color: var(--text-primary, #fff);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.step[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-8px);
 }
 
 .step-dot {
@@ -1189,4 +1243,15 @@ h2 {
 
 [data-theme="light"] .step-line {
     background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .copy-link-btn {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .copy-link-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
