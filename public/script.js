@@ -527,6 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="status-badge ${statusClass}">${statusText}</p>
                     </div>
                     <div class="share-actions">
+                        <button class="copy-link-btn" onclick="exportPdf(this)" title="Export PDF">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span data-i18n="export_pdf">${t('export_pdf', 'Export PDF')}</span>
+                        </button>
                         <button class="copy-link-btn" onclick="copyToClipboard('${window.location.origin}/track/${resolvedBarcode}', this)" title="Copy Link">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                             <span data-i18n="share_link">${t('share_link', 'Copy Link')}</span>
@@ -580,5 +584,53 @@ window.copyToClipboard = function (text, btn) {
         }, 2000);
     }).catch(err => {
         console.error('Failed to copy text: ', err);
+    });
+};
+
+window.exportPdf = function (btn) {
+    if (typeof html2pdf === 'undefined') {
+        alert('PDF library is still loading. Please try again in a moment.');
+        return;
+    }
+
+    // Find the closest tracking card
+    const card = btn.closest('.tracking-card');
+    if (!card) return;
+
+    // Hide share buttons temporarily so they don't appear in the PDF
+    const shareActions = card.querySelector('.share-actions');
+    if (shareActions) shareActions.style.display = 'none';
+
+    // Get the barcode for the filename
+    const h2 = card.querySelector('h2');
+    const barcode = h2 ? h2.innerText.trim() : 'Tracking';
+
+    // Configure PDF options
+    const opt = {
+        margin: 10,
+        filename: `SL_Post_Tracking_${barcode}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: document.documentElement.getAttribute('data-theme') === 'light' ? '#ffffff' : '#18181b' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Add a temporary wrapper class for PDF-specific styling (like text colors)
+    card.classList.add('exporting-pdf');
+
+    const origText = btn.innerHTML;
+    btn.innerHTML = '...';
+
+    // Generate PDF
+    html2pdf().set(opt).from(card).save().then(() => {
+        // Restore UI
+        if (shareActions) shareActions.style.display = '';
+        card.classList.remove('exporting-pdf');
+        btn.innerHTML = origText;
+    }).catch(err => {
+        console.error('PDF export failed:', err);
+        if (shareActions) shareActions.style.display = '';
+        card.classList.remove('exporting-pdf');
+        btn.innerHTML = origText;
+        alert('Failed to generate PDF. Check console for details.');
     });
 };
