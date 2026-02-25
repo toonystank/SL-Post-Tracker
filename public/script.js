@@ -2,6 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TRANSLATION LOGIC ---
     let currentLang = localStorage.getItem('slpost_lang') || 'en';
 
+    // Escape HTML to prevent XSS from user-supplied values
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(str)));
+        return div.innerHTML;
+    }
+
     function t(key, fallback) {
         if (typeof translations !== 'undefined' && translations[currentLang] && translations[currentLang][key]) {
             return translations[currentLang][key];
@@ -208,11 +216,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             card.innerHTML = `
                 <div class="history-card-header">
-                    <span class="history-barcode">${item.barcode}</span>
-                    <span class="history-type-badge">${item.type || 'COD'}</span>
+                    <span class="history-barcode">${escapeHtml(item.barcode)}</span>
+                    <span class="history-type-badge">${escapeHtml(item.type || 'COD')}</span>
                 </div>
                 <div class="history-card-body">
-                    <span class="status-badge ${statusClass}">${item.statusText || 'Unknown'}</span>
+                    <span class="status-badge ${statusClass}">${escapeHtml(item.statusText || 'Unknown')}</span>
                     <span class="history-time">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         ${timeStr}
@@ -232,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.saveTrackingHistory = function (barcode, statusText, type, fullData) {
+    function saveTrackingHistory(barcode, statusText, type, fullData) {
         // Remove if exists to move to top
         trackingHistory = trackingHistory.filter(i => i.barcode !== barcode);
 
@@ -251,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         localStorage.setItem('slpost_tracking_history', JSON.stringify(trackingHistory));
         renderHistory();
-    };
+    }
 
     renderHistory();
 
@@ -332,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Form Submit
     let pendingFallback = null; // Stores barcode waiting for SLP courier retry
-    const trackBtnOriginalText = trackBtn ? trackBtn.textContent : 'Track Parcel';
+    const trackBtnOriginalText = trackBtn ? (trackBtn.querySelector('span')?.textContent || trackBtn.textContent).trim() : 'Track Parcel';
 
     if (trackForm) {
         trackForm.addEventListener('submit', async (e) => {
@@ -492,8 +500,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         return `<div class="compact-card" onclick="this.classList.toggle('expanded')">
                             <div class="compact-card-header">
                                 <div class="compact-card-info">
-                                    <span class="compact-barcode">${result.barcode.toUpperCase()}</span>
-                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                    <span class="compact-barcode">${escapeHtml(result.barcode.toUpperCase())}</span>
+                                    <span class="status-badge ${statusClass}">${escapeHtml(statusText)}</span>
                                 </div>
                                 <svg class="compact-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </div>
@@ -639,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fallbackNotice = document.createElement('div');
         fallbackNotice.className = 'fallback-captcha-notice';
         fallbackNotice.innerHTML = `
-            <p>📬 <strong>${barcode.toUpperCase()}</strong> was not found in the COD system. It may be an SLP Courier item.</p>
+            <p>📬 <strong>${escapeHtml(barcode.toUpperCase())}</strong> was not found in the COD system. It may be an SLP Courier item.</p>
             <p>Please solve the CAPTCHA above and click <strong>Retry as SLP Courier</strong> to track.</p>
         `;
         const trackSection = trackForm.closest('.bento-card') || trackForm.parentElement;
@@ -654,15 +662,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateTrackingCard(barcode, events, error, typeStr = 'COD') {
         if (error) {
             const html = `<div class="tracking-card">
-                        <div class="results-header"><div><h2 style="display:flex;align-items:center;gap:0.5rem">${barcode.toUpperCase()}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${typeStr}</span></h2><p class="status-badge error">${t('err_status_error', 'Error')}</p></div></div>
-                        <div class="error-message">${error}</div>
+                        <div class="results-header"><div><h2 style="display:flex;align-items:center;gap:0.5rem">${escapeHtml(barcode.toUpperCase())}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${escapeHtml(typeStr)}</span></h2><p class="status-badge error">${t('err_status_error', 'Error')}</p></div></div>
+                        <div class="error-message">${escapeHtml(error)}</div>
                     </div>`;
             return { html, statusText: error, statusClass: 'error' };
         }
 
         if (!events || events.length === 0) {
             const html = `<div class="tracking-card">
-                        <div class="results-header"><div><h2 style="display:flex;align-items:center;gap:0.5rem">${barcode.toUpperCase()}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${typeStr}</span></h2><p class="status-badge error">${t('err_no_record', 'No Record Found')}</p></div></div>
+                        <div class="results-header"><div><h2 style="display:flex;align-items:center;gap:0.5rem">${escapeHtml(barcode.toUpperCase())}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${escapeHtml(typeStr)}</span></h2><p class="status-badge error">${t('err_no_record', 'No Record Found')}</p></div></div>
                         <div class="timeline"><div class="timeline-item"><div class="timeline-content"><div class="timeline-title">${t('err_no_tracking', 'No tracking information found.')}</div></div></div></div>
                     </div>`;
             return { html, statusText: 'No Record Found', statusClass: 'error' };
@@ -724,8 +732,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const val = (e.col_1 || '').trim();
                 if (key && key.toLowerCase() !== 'barcode' && key.toLowerCase() !== 'status') {
                     gridItems += `<div class="info-group">
-                        <span class="info-label">${formatKey(key)}</span>
-                        <span class="info-value">${formatValue(val) || '-'}</span>
+                        <span class="info-label">${escapeHtml(formatKey(key))}</span>
+                        <span class="info-value">${escapeHtml(formatValue(val) || '-')}</span>
                     </div>`;
                 }
             });
@@ -776,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (slpStatus.includes('transit') || slpStatus.includes('send')) {
                     slpActiveStep = Math.max(slpActiveStep, 1);
                 }
-                if (slpStatus.includes('arrived') || slpStatus.includes('receive') && slpStatus.includes('delivery')) {
+                if (slpStatus.includes('arrived') || (slpStatus.includes('receive') && slpStatus.includes('delivery'))) {
                     slpActiveStep = Math.max(slpActiveStep, 2);
                 }
                 if (slpStatus.includes('delivered') || slpStatus.includes('success')) {
@@ -836,25 +844,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (acceptingPO) {
                     gridItems += `<div class="info-group">
                         <span class="info-label">Accepting Post Office</span>
-                        <span class="info-value">${acceptingPO}</span>
+                        <span class="info-value">${escapeHtml(acceptingPO)}</span>
                     </div>`;
                 }
                 if (dateAccepted) {
                     gridItems += `<div class="info-group">
                         <span class="info-label">Date Accepted</span>
-                        <span class="info-value">${dateAccepted}</span>
+                        <span class="info-value">${escapeHtml(dateAccepted)}</span>
                     </div>`;
                 }
                 if (deliveryPO) {
                     gridItems += `<div class="info-group">
                         <span class="info-label">Delivery Post Office</span>
-                        <span class="info-value">${deliveryPO}</span>
+                        <span class="info-value">${escapeHtml(deliveryPO)}</span>
                     </div>`;
                 }
                 if (receivedDate) {
                     gridItems += `<div class="info-group">
                         <span class="info-label">Received at Delivery Office</span>
-                        <span class="info-value">${receivedDate}</span>
+                        <span class="info-value">${escapeHtml(receivedDate)}</span>
                     </div>`;
                 }
 
@@ -1025,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="tracking-card">
                 <div class="results-header">
                     <div>
-                        <h2 style="display:flex;align-items:center;gap:0.5rem">${resolvedBarcode}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${typeStr}</span></h2>
+                        <h2 style="display:flex;align-items:center;gap:0.5rem">${escapeHtml(resolvedBarcode)}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${escapeHtml(typeStr)}</span></h2>
                         <p class="status-badge ${statusClass}">${statusText}</p>
                     </div>
                     <div class="share-actions">

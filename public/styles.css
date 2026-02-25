@@ -680,6 +680,11 @@ h2 {
     color: var(--status-success);
 }
 
+.status-badge.error {
+    background: rgba(244, 63, 94, 0.15);
+    color: var(--status-error);
+}
+
 /* Timeline */
 .timeline {
     position: relative;
@@ -1729,13 +1734,13 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: var(--transition);
+    transition: all 0.2s ease;
     border-radius: 6px;
 }
 
 .scan-btn:hover {
-    color: var(--primary);
-    background: var(--bg-hover);
+    color: var(--accent-1);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .modal {
@@ -1761,12 +1766,12 @@ h2 {
 }
 
 .modal-content {
-    background: var(--bg-card);
+    background: var(--glass-bg);
     border-radius: 12px;
     width: 100%;
     max-width: 500px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--glass-border);
     overflow: hidden;
     transform: translateY(0);
     transition: transform 0.3s ease;
@@ -1781,7 +1786,7 @@ h2 {
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .modal-header h3 {
@@ -1801,7 +1806,7 @@ h2 {
 }
 
 .scanner-content #reader__dashboard_section_csr button {
-    background: var(--primary);
+    background: var(--accent-1);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -1815,7 +1820,7 @@ h2 {
 /* Delivery Estimate Badge */
 .delivery-estimate-badge {
     background: rgba(139, 92, 246, 0.1);
-    color: var(--primary);
+    color: var(--accent-2);
     padding: 0.5rem 1rem;
     border-radius: 8px;
     font-size: 0.85rem;

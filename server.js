@@ -8,6 +8,15 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Reuse a single HTTPS agent for all SLP requests (they have SSL issues)
+const https = require('https');
+const slpHttpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+// Validate barcode format: alphanumeric only, max 20 chars
+function isValidBarcode(barcode) {
+    return typeof barcode === 'string' && /^[A-Za-z0-9]{1,20}$/.test(barcode.trim());
+}
+
 app.use(compression());
 app.use(cors());
 app.use(express.json());
@@ -33,6 +42,10 @@ app.post('/api/track', async (req, res) => {
 
     if (!barcode) {
         return res.status(400).json({ error: 'Barcode is required' });
+    }
+
+    if (!isValidBarcode(barcode)) {
+        return res.status(400).json({ error: 'Invalid barcode format' });
     }
 
     try {
@@ -107,7 +120,7 @@ app.get('/api/courier/captcha', async (req, res) => {
     try {
         const response = await axios.get('https://slpmail.slpost.gov.lk/track/captcha.php', {
             responseType: 'arraybuffer',
-            httpsAgent: new (require('https')).Agent({ rejectUnauthorized: false }), // Add this to bypass SLP SSL issues
+            httpsAgent: slpHttpsAgent,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
@@ -136,6 +149,10 @@ app.post('/api/courier/track', async (req, res) => {
         return res.status(400).json({ error: 'Barcode, Captcha, and Session Cookie are required' });
     }
 
+    if (!isValidBarcode(barcode)) {
+        return res.status(400).json({ error: 'Invalid barcode format' });
+    }
+
     try {
         const params = new URLSearchParams();
         params.append('barcode', barcode);
@@ -143,7 +160,7 @@ app.post('/api/courier/track', async (req, res) => {
         params.append('Submit', 'Search');
 
         const response = await axios.post('https://slpmail.slpost.gov.lk/track/index.php', params, {
-            httpsAgent: new (require('https')).Agent({ rejectUnauthorized: false }), // Add this to bypass SLP SSL issues
+            httpsAgent: slpHttpsAgent,
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
