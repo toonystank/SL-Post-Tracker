@@ -96,6 +96,57 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('error-message');
     const multiResultsSection = document.getElementById('multi-results-section');
 
+    // --- BARCODE SCANNER LOGIC ---
+    const scanBtn = document.getElementById('scan-btn');
+    const scannerModal = document.getElementById('scanner-modal');
+    const closeScannerBtn = document.getElementById('close-scanner');
+    let html5QrcodeScanner = null;
+
+    if (scanBtn && scannerModal) {
+        scanBtn.addEventListener('click', () => {
+            scannerModal.classList.remove('hidden');
+
+            if (!html5QrcodeScanner) {
+                // Initialize scanner
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader",
+                    { fps: 10, qrbox: { width: 250, height: 100 } },
+                    /* verbose= */ false
+                );
+            }
+
+            html5QrcodeScanner.render((decodedText) => {
+                // On success
+                html5QrcodeScanner.clear();
+                scannerModal.classList.add('hidden');
+
+                // Auto-comma logic
+                const currentVal = barcodeInput.value.trim();
+                if (currentVal) {
+                    if (currentVal.endsWith(',')) {
+                        barcodeInput.value = currentVal + ' ' + decodedText + ', ';
+                    } else {
+                        barcodeInput.value = currentVal + ', ' + decodedText + ', ';
+                    }
+                } else {
+                    barcodeInput.value = decodedText + ', ';
+                }
+
+                // Trigger input event to update captcha visibility
+                barcodeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }, (error) => {
+                // Ignore errors (usually just "not found yet")
+            });
+        });
+
+        closeScannerBtn.addEventListener('click', () => {
+            if (html5QrcodeScanner) {
+                try { html5QrcodeScanner.clear(); } catch (e) { }
+            }
+            scannerModal.classList.add('hidden');
+        });
+    }
+
     // Captcha elements
     const captchaContainer = document.getElementById('dynamic-captcha-container');
     const captchaInput = document.getElementById('courier-captcha');
@@ -103,67 +154,106 @@ document.addEventListener('DOMContentLoaded', () => {
     const captchaLoader = document.getElementById('captcha-loader');
     const refreshCaptchaBtn = document.getElementById('refresh-captcha');
 
-    const recentSearchesContainer = document.getElementById('recent-searches-container');
-    const recentChipsContainer = document.getElementById('recent-chips');
+    const historyContainer = document.getElementById('tracking-history-container');
+    const historyCardsContainer = document.getElementById('history-cards');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
 
-    // --- RECENT SEARCH LOGIC ---
-    let recentSearches = [];
+    // --- TRACKING HISTORY LOGIC ---
+    let trackingHistory = [];
     try {
-        recentSearches = JSON.parse(localStorage.getItem('slpost_recent_searches') || '[]');
+        trackingHistory = JSON.parse(localStorage.getItem('slpost_tracking_history') || '[]');
     } catch {
-        recentSearches = [];
+        trackingHistory = [];
     }
 
-    function renderRecentSearches() {
-        if (!recentSearchesContainer || !recentChipsContainer) return;
+    function renderHistory() {
+        if (!historyContainer || !historyCardsContainer) return;
 
-        if (recentSearches.length === 0) {
-            recentSearchesContainer.classList.add('hidden');
+        if (trackingHistory.length === 0) {
+            historyContainer.classList.add('hidden');
             return;
         }
 
-        recentSearchesContainer.classList.remove('hidden');
-        recentChipsContainer.innerHTML = '';
+        historyContainer.classList.remove('hidden');
+        historyCardsContainer.innerHTML = '';
 
-        recentSearches.forEach(barcode => {
-            const chip = document.createElement('div');
-            chip.className = 'recent-chip';
-            chip.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> ${barcode}`;
+        trackingHistory.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'history-card';
 
-            // Quick click to re-search
-            chip.addEventListener('click', () => {
-                barcodeInput.value = barcode;
-                // Dispatch input event to trigger auto-detect
+            // Re-search on click
+            card.addEventListener('click', () => {
+                barcodeInput.value = item.barcode;
                 barcodeInput.dispatchEvent(new Event('input', { bubbles: true }));
-
-                // Add slight delay before submitting if captcha is needed and loading
                 setTimeout(() => {
-                    if (trackForm) {
-                        trackForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-                    }
+                    if (trackForm) trackForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
                 }, 100);
             });
 
-            recentChipsContainer.appendChild(chip);
+            // Determine status color class
+            let statusClass = 'transit';
+            const statusLower = (item.statusText || '').toLowerCase();
+            if (statusLower.includes('deliver') || statusLower.includes('success') || statusLower.includes('settled')) statusClass = 'success';
+            else if (statusLower.includes('return') || statusLower.includes('fail') || statusLower.includes('error')) statusClass = 'error';
+
+            // Format relative time
+            const timeDiff = Date.now() - item.lastChecked;
+            const diffMins = Math.floor(timeDiff / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            let timeStr = 'Just now';
+            if (diffDays > 0) timeStr = `${diffDays}d ago`;
+            else if (diffHours > 0) timeStr = `${diffHours}h ago`;
+            else if (diffMins > 0) timeStr = `${diffMins}m ago`;
+
+            card.innerHTML = `
+                <div class="history-card-header">
+                    <span class="history-barcode">${item.barcode}</span>
+                    <span class="history-type-badge">${item.type || 'COD'}</span>
+                </div>
+                <div class="history-card-body">
+                    <span class="status-badge ${statusClass}">${item.statusText || 'Unknown'}</span>
+                    <span class="history-time">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        ${timeStr}
+                    </span>
+                </div>
+            `;
+
+            historyCardsContainer.appendChild(card);
         });
     }
 
-    // Expose save globally for track results
-    window.saveRecentSearches = function (newBarcodes) {
-        newBarcodes.forEach(code => {
-            recentSearches = recentSearches.filter(b => b !== code);
-            recentSearches.unshift(code);
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', () => {
+            trackingHistory = [];
+            localStorage.setItem('slpost_tracking_history', '[]');
+            renderHistory();
+        });
+    }
+
+    window.saveTrackingHistory = function (barcode, statusText, type, fullData) {
+        // Remove if exists to move to top
+        trackingHistory = trackingHistory.filter(i => i.barcode !== barcode);
+
+        trackingHistory.unshift({
+            barcode,
+            statusText,
+            type,
+            lastChecked: Date.now(),
+            data: fullData
         });
 
-        if (recentSearches.length > 3) {
-            recentSearches = recentSearches.slice(0, 3);
+        // Keep last 10
+        if (trackingHistory.length > 10) {
+            trackingHistory = trackingHistory.slice(0, 10);
         }
 
-        localStorage.setItem('slpost_recent_searches', JSON.stringify(recentSearches));
-        renderRecentSearches();
+        localStorage.setItem('slpost_tracking_history', JSON.stringify(trackingHistory));
+        renderHistory();
     };
 
-    renderRecentSearches();
+    renderHistory();
 
     let currentSessionCookie = '';
     let captchaLoaded = false;
@@ -251,6 +341,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const inputValue = barcodeInput.value.trim();
             if (!inputValue) return;
 
+            // Offline Check: If offline, try to load from history
+            if (!navigator.onLine) {
+                const searchBarcodes = inputValue.split(',').map(b => b.trim().toUpperCase());
+                let foundOffline = false;
+                multiResultsSection.innerHTML = '';
+
+                searchBarcodes.forEach(b => {
+                    const cached = trackingHistory.find(h => h.barcode.toUpperCase() === b);
+                    if (cached) {
+                        const cardResult = generateTrackingCard(cached.barcode, cached.data, null, cached.type || 'COD');
+                        multiResultsSection.insertAdjacentHTML('beforeend', cardResult.html);
+                        foundOffline = true;
+                    }
+                });
+
+                if (foundOffline) {
+                    multiResultsSection.classList.remove('hidden');
+                    document.getElementById('offline-banner').classList.remove('hidden');
+                } else {
+                    errorMessage.textContent = 'You are offline and this tracking number is not cached.';
+                    errorMessage.classList.remove('hidden');
+                }
+                trackBtn.classList.remove('loading');
+                trackBtn.disabled = false;
+                return;
+            }
+            const ob = document.getElementById('offline-banner');
+            if (ob) ob.classList.add('hidden');
+
             // Clean up any existing fallback notices
             document.querySelectorAll('.fallback-captcha-notice').forEach(n => n.remove());
 
@@ -267,16 +386,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 trackBtn.textContent = '';
 
                 const slpResult = await trackCourier(pendingFallback.barcode, captchaStr);
-                const finalResult = (slpResult.data && slpResult.data.length > 0) ? slpResult : pendingFallback.codResult;
+                let finalResult = (slpResult.data && slpResult.data.length > 0) ? slpResult : pendingFallback.codResult;
+                const finalType = (slpResult.data && slpResult.data.length > 0) ? 'SLP Courier' : 'COD';
 
                 // Render the result
-                const cardHtml = generateTrackingCard(finalResult.barcode, finalResult.data, finalResult.error);
-                multiResultsSection.innerHTML = cardHtml;
+                const cardResult = generateTrackingCard(finalResult.barcode, finalResult.data, finalResult.error, finalType);
+                multiResultsSection.innerHTML = cardResult.html;
                 multiResultsSection.classList.remove('hidden');
 
-                // Save to recent searches if successful
+                // Save tracking history if successful
                 if (finalResult.data && finalResult.data.length > 0) {
-                    saveRecentSearches([finalResult.barcode.toUpperCase()]);
+                    saveTrackingHistory(finalResult.barcode.toUpperCase(), cardResult.statusText, finalType, finalResult.data);
                 }
 
                 // Reset fallback state and button
@@ -343,54 +463,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     let deliveredCount = 0, transitCount = 0, errorCount = 0;
 
                     const cardsHtml = results.map(result => {
-                        const cardHtml = generateTrackingCard(result.barcode, result.data, result.error);
+                        const typeLabel = classifyBarcode(result.barcode) === 'slp' ? 'SLP Courier' : 'COD';
+                        const cardResult = generateTrackingCard(result.barcode, result.data, result.error, typeLabel);
 
                         if (result.error && result.error.toLowerCase().includes('captcha')) {
                             hasCaptchaError = true;
                         } else if (!result.error && result.data && result.data.length > 0) {
-                            successfulBarcodes.push(result.barcode.toUpperCase());
+                            successfulBarcodes.push({
+                                barcode: result.barcode.toUpperCase(),
+                                statusText: cardResult.statusText,
+                                type: typeLabel,
+                                data: result.data
+                            });
                         }
+
+                        const statusClass = cardResult.statusClass || 'transit';
+                        const statusText = cardResult.statusText || 'Unknown';
 
                         // Count statuses
                         if (!result.error && result.data && result.data.length > 0) {
-                            const statusRow = result.data.find(r => (r.col_0 || '').trim().toLowerCase() === 'status');
-                            const st = statusRow ? (statusRow.col_1 || '').toLowerCase() : '';
-                            if (st.includes('delivered') || st.includes('settled') || st.includes('success')) {
-                                deliveredCount++;
-                            } else if (st.includes('returned') || st.includes('fail') || st.includes('error')) {
-                                errorCount++;
-                            } else {
-                                transitCount++;
-                            }
+                            if (statusClass === 'success') deliveredCount++;
+                            else if (statusClass === 'error') errorCount++;
+                            else transitCount++;
                         } else {
                             errorCount++;
-                        }
-
-                        // Extract barcode and status for compact card
-                        const resolvedBarcode = result.barcode.toUpperCase();
-                        let statusText = 'Unknown';
-                        let statusClass = '';
-                        if (result.error) {
-                            statusText = result.error;
-                            statusClass = 'error';
-                        } else if (result.data && result.data.length > 0) {
-                            const sr = result.data.find(r => (r.col_0 || '').trim().toLowerCase() === 'status');
-                            if (sr) statusText = (sr.col_1 || '').trim();
-                            const sl = statusText.toLowerCase();
-                            if (sl.includes('delivered') || sl.includes('settled') || sl.includes('success')) statusClass = 'success';
-                            else if (sl.includes('returned') || sl.includes('fail') || sl.includes('error') || sl.includes('not')) statusClass = 'error';
-                            else statusClass = 'transit';
                         }
 
                         return `<div class="compact-card" onclick="this.classList.toggle('expanded')">
                             <div class="compact-card-header">
                                 <div class="compact-card-info">
-                                    <span class="compact-barcode">${resolvedBarcode}</span>
+                                    <span class="compact-barcode">${result.barcode.toUpperCase()}</span>
                                     <span class="status-badge ${statusClass}">${statusText}</span>
                                 </div>
                                 <svg class="compact-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </div>
-                            <div class="compact-card-body">${cardHtml}</div>
+                            <div class="compact-card-body">${cardResult.html}</div>
                         </div>`;
                     }).join('');
 
@@ -431,19 +538,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // --- STANDARD CARD MODE ---
                     results.forEach(result => {
-                        const cardHtml = generateTrackingCard(result.barcode, result.data, result.error);
-                        multiResultsSection.insertAdjacentHTML('beforeend', cardHtml);
+                        const typeLabel = classifyBarcode(result.barcode) === 'slp' ? 'SLP Courier' : 'COD';
+                        const cardResult = generateTrackingCard(result.barcode, result.data, result.error, typeLabel);
+                        multiResultsSection.insertAdjacentHTML('beforeend', cardResult.html);
 
                         if (result.error && result.error.toLowerCase().includes('captcha')) {
                             hasCaptchaError = true;
                         } else if (!result.error && result.data && result.data.length > 0) {
-                            successfulBarcodes.push(result.barcode.toUpperCase());
+                            successfulBarcodes.push({
+                                barcode: result.barcode.toUpperCase(),
+                                statusText: cardResult.statusText,
+                                type: typeLabel,
+                                data: result.data
+                            });
                         }
                     });
                 }
 
                 if (successfulBarcodes.length > 0) {
-                    saveRecentSearches(successfulBarcodes);
+                    successfulBarcodes.forEach(b => saveTrackingHistory(b.barcode, b.statusText, b.type, b.data));
                 }
 
                 multiResultsSection.classList.remove('hidden');
@@ -538,19 +651,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function generateTrackingCard(barcode, events, error) {
+    function generateTrackingCard(barcode, events, error, typeStr = 'COD') {
         if (error) {
-            return `<div class="tracking-card">
-                        <div class="results-header"><div><h2>${barcode.toUpperCase()}</h2><p class="status-badge error">${t('err_status_error', 'Error')}</p></div></div>
+            const html = `<div class="tracking-card">
+                        <div class="results-header"><div><h2 style="display:flex;align-items:center;gap:0.5rem">${barcode.toUpperCase()}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${typeStr}</span></h2><p class="status-badge error">${t('err_status_error', 'Error')}</p></div></div>
                         <div class="error-message">${error}</div>
                     </div>`;
+            return { html, statusText: error, statusClass: 'error' };
         }
 
         if (!events || events.length === 0) {
-            return `<div class="tracking-card">
-                        <div class="results-header"><div><h2>${barcode.toUpperCase()}</h2><p class="status-badge error">${t('err_no_record', 'No Record Found')}</p></div></div>
+            const html = `<div class="tracking-card">
+                        <div class="results-header"><div><h2 style="display:flex;align-items:center;gap:0.5rem">${barcode.toUpperCase()}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${typeStr}</span></h2><p class="status-badge error">${t('err_no_record', 'No Record Found')}</p></div></div>
                         <div class="timeline"><div class="timeline-item"><div class="timeline-content"><div class="timeline-title">${t('err_no_tracking', 'No tracking information found.')}</div></div></div></div>
                     </div>`;
+            return { html, statusText: 'No Record Found', statusClass: 'error' };
         }
 
         // Determine if this is a COD key-value format (usually 2 columns, first column ends up as keys)
@@ -791,6 +906,42 @@ document.addEventListener('DOMContentLoaded', () => {
             statusClass = "error";
         }
 
+        let estimateHtml = '';
+        if (statusClass !== 'success' && statusClass !== 'error') {
+            let estimateText = '';
+            if (slStatus.includes('arrived') && slStatus.includes('delivery')) {
+                // Arrived at delivery office
+                estimateText = 'Delivery expected today or tomorrow';
+            } else if (slStatus.includes('transit') || slStatus.includes('accepted')) {
+                // Check if Same District (Very naive check: if accepting PO == delivery PO)
+                let isSamePO = false;
+                if (isKeyValueFormat) {
+                    const getMapVal = (key) => {
+                        const e = events.find(ev => (ev.col_0 || '').trim().toLowerCase() === key);
+                        return e ? (e.col_1 || '').trim().toLowerCase() : '';
+                    };
+                    const accPO = getMapVal('acceptingpo');
+                    const delPO = getMapVal('deliverypo');
+                    if (accPO && delPO && accPO === delPO) {
+                        isSamePO = true;
+                    }
+                }
+
+                if (isSamePO) {
+                    estimateText = 'Estimated delivery in 1-2 business days';
+                } else {
+                    estimateText = 'Estimated delivery in 2-4 business days';
+                }
+            }
+
+            if (estimateText) {
+                estimateHtml = `<div style="padding: 0 1.5rem; margin-top: 1rem;"><div class="delivery-estimate-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span style="vertical-align: middle;">${estimateText}</span>
+                </div></div>`;
+            }
+        }
+
         // Build progress stepper (for COD key-value results)
         if (isKeyValueFormat) {
             const steps = ['Accepted', 'In Transit', 'Arrived', 'Delivered'];
@@ -870,11 +1021,11 @@ document.addEventListener('DOMContentLoaded', () => {
         shareText += `\n🔗 Track at: ${window.location.origin}/track/${resolvedBarcode}`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
-        return `
+        const html = `
             <div class="tracking-card">
                 <div class="results-header">
                     <div>
-                        <h2>${resolvedBarcode}</h2>
+                        <h2 style="display:flex;align-items:center;gap:0.5rem">${resolvedBarcode}<span class="history-type-badge" style="vertical-align:middle;font-size:0.7rem">${typeStr}</span></h2>
                         <p class="status-badge ${statusClass}">${statusText}</p>
                     </div>
                     <div class="share-actions">
@@ -893,9 +1044,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 ${stepperHtml}
+                ${estimateHtml}
                 ${timelineHtml}
             </div>
         `;
+        return { html, statusText, statusClass };
     }
 
     // --- SHAREABLE TRACKING URL ---

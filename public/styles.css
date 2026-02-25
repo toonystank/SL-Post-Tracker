@@ -457,55 +457,135 @@ input::placeholder {
     animation: fadeIn 0.3s;
 }
 
-/* Recent Searches */
-.recent-searches {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    margin-top: 1.25rem;
-    flex-wrap: wrap;
+/* Tracking History */
+.tracking-history {
+    margin-top: 1.5rem;
     animation: fadeIn 0.3s;
+    text-align: left;
 }
 
-.recent-label {
-    font-size: 0.8rem;
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+}
+
+.history-title {
+    font-size: 0.9rem;
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.recent-chips {
-    display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
+.clear-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
 }
 
-.recent-chip {
-    background: rgba(255, 255, 255, 0.04);
+.clear-btn:hover {
+    color: var(--accent-1);
+}
+
+.history-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.history-card {
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 0.35rem 0.85rem;
-    border-radius: 2rem;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    min-width: 180px;
+    flex: 1 1 calc(50% - 0.75rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .history-card {
+    background: #fff;
+}
+
+.history-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(249, 115, 22, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.history-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-barcode {
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.history-type-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.history-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.history-card .status-badge {
+    align-self: flex-start;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.6rem;
+}
+
+.history-time {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-weight: 400;
+    gap: 0.3rem;
 }
 
-.recent-chip:hover {
-    background: rgba(249, 115, 22, 0.1);
-    border-color: rgba(249, 115, 22, 0.3);
-    color: var(--accent-1);
-    transform: translateY(-1px);
+/* Offline Banner */
+.offline-banner {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--status-transit);
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    font-weight: 500;
+    animation: fadeInDown 0.3s ease-out;
 }
 
-.recent-chip svg {
-    opacity: 0.5;
+.offline-banner svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
 }
 
 /* Results Section */
@@ -1633,4 +1713,120 @@ h2 {
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
     }
+}
+
+/* --- SCANNER STYLES --- */
+.scan-btn {
+    position: absolute;
+    right: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    border-radius: 6px;
+}
+
+.scan-btn:hover {
+    color: var(--primary);
+    background: var(--bg-hover);
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.modal.hidden .modal-content {
+    transform: translateY(20px);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.scanner-content #reader {
+    background: #000;
+    color: #fff;
+}
+
+.scanner-content #reader video {
+    object-fit: cover;
+    width: 100%;
+}
+
+.scanner-content #reader__dashboard_section_csr button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+/* Delivery Estimate Badge */
+.delivery-estimate-badge {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="dark"] .delivery-estimate-badge {
+    background: rgba(167, 139, 250, 0.15);
+    color: var(--accent-1);
+    border-color: rgba(167, 139, 250, 0.25);
 }

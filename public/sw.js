@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slpost-v4';
+const CACHE_NAME = 'slpost-v5';
 const STATIC_ASSETS = [
     '/',
     '/styles.css',
@@ -26,7 +26,7 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-// Fetch: network-first for API calls, cache-first for static assets
+// Fetch: network-first for everything
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
@@ -35,17 +35,16 @@ self.addEventListener('fetch', event => {
         return event.respondWith(fetch(event.request));
     }
 
-    // Cache-first for static assets
+    // Network-first strategy
     event.respondWith(
-        caches.match(event.request).then(cached => {
-            return cached || fetch(event.request).then(response => {
-                // Cache successful responses
-                if (response.ok) {
+        fetch(event.request)
+            .then(response => {
+                if (response && response.ok) {
                     const clone = response.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
                 }
                 return response;
-            });
-        })
+            })
+            .catch(() => caches.match(event.request))
     );
 });

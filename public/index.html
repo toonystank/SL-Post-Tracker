@@ -218,6 +218,20 @@
             </nav>
         </header>
 
+        <div id="offline-banner" class="offline-banner hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+                <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+            </svg>
+            <span data-i18n="offline_mode">You are currently offline. Showing cached tracking results.</span>
+        </div>
+
         <section class="hero" id="home">
             <h1 id="hero-title"><span data-i18n="hero_title_1">The All-In-One </span><span class="gradient-text"
                     data-i18n="hero_title_2">Postal Tracker</span></h1>
@@ -245,6 +259,17 @@
                             <input type="text" id="barcode" name="barcode"
                                 placeholder="e.g. BD004902491LK or RR123456789LK" required autocomplete="off"
                                 data-i18n-placeholder="track_placeholder">
+                            <button type="button" id="scan-btn" class="scan-btn" title="Scan Barcode"
+                                aria-label="Scan Barcode">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                                    <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                                    <rect x="7" y="7" width="10" height="10" rx="1" ry="1"></rect>
+                                </svg>
+                            </button>
                         </div>
 
                         <div id="dynamic-captcha-container" class="captcha-container hidden">
@@ -274,9 +299,15 @@
                     </button>
                 </form>
                 <div id="error-message" class="error-message hidden"></div>
-                <div id="recent-searches-container" class="recent-searches hidden">
-                    <span class="recent-label" data-i18n="recent_searches">Recent:</span>
-                    <div id="recent-chips" class="recent-chips"></div>
+                <div id="tracking-history-container" class="tracking-history hidden">
+                    <div class="history-header">
+                        <span class="history-title" data-i18n="tracking_history">Tracking History</span>
+                        <button type="button" id="clear-history-btn" class="clear-btn" data-i18n="clear_history">Clear
+                            All</button>
+                    </div>
+                    <div id="history-cards" class="history-cards">
+                        <!-- History cards injected here -->
+                    </div>
                 </div>
 
                 <div id="multi-results-section" class="multi-results hidden">
@@ -376,14 +407,41 @@
         </button>
     </nav>
 
-    <script src="/translations.js" defer></script>
-    <script src="/script.js" defer></script>
+    <footer class="fade-in">
+        <p data-i18n="footer_credits">Developed by <a href="https://hakeem.us.kg/" target="_blank"
+                rel="noopener"><b>Hakeem</b></a></p>
+    </footer>
+
+    <!-- Scanner Modal -->
+    <div id="scanner-modal" class="modal hidden">
+        <div class="modal-content scanner-content">
+            <div class="modal-header">
+                <h3 data-i18n="scan_barcode">Scan Barcode</h3>
+                <button type="button" id="close-scanner" class="icon-btn close-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div id="reader" style="width: 100%; min-height: 250px;"></div>
+        </div>
+    </div>
+
+    <!-- PWA Service Worker Registration -->
     <script>
-        // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => { });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered:', registration.scope))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
         }
     </script>
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
+    <script src="/translations.js" defer></script>
+    <script src="/script.js" defer></script>
 </body>
 
 </html>
