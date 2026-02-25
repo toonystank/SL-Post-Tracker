@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slpost-v3';
+const CACHE_NAME = 'slpost-v4';
 const STATIC_ASSETS = [
     '/',
     '/styles.css',

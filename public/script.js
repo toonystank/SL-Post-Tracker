@@ -253,16 +253,112 @@ document.addEventListener('DOMContentLoaded', () => {
                 let hasCaptchaError = false;
                 let successfulBarcodes = [];
 
-                results.forEach(result => {
-                    const cardHtml = generateTrackingCard(result.barcode, result.data, result.error);
-                    multiResultsSection.insertAdjacentHTML('beforeend', cardHtml);
+                const isBulk = results.length >= 3;
 
-                    if (result.error && result.error.toLowerCase().includes('captcha')) {
-                        hasCaptchaError = true;
-                    } else if (!result.error && result.data && result.data.length > 0) {
-                        successfulBarcodes.push(result.barcode.toUpperCase());
-                    }
-                });
+                if (isBulk) {
+                    // --- BULK DASHBOARD MODE ---
+                    let totalCount = results.length;
+                    let deliveredCount = 0, transitCount = 0, errorCount = 0;
+
+                    const cardsHtml = results.map(result => {
+                        const cardHtml = generateTrackingCard(result.barcode, result.data, result.error);
+
+                        if (result.error && result.error.toLowerCase().includes('captcha')) {
+                            hasCaptchaError = true;
+                        } else if (!result.error && result.data && result.data.length > 0) {
+                            successfulBarcodes.push(result.barcode.toUpperCase());
+                        }
+
+                        // Count statuses
+                        if (!result.error && result.data && result.data.length > 0) {
+                            const statusRow = result.data.find(r => (r.col_0 || '').trim().toLowerCase() === 'status');
+                            const st = statusRow ? (statusRow.col_1 || '').toLowerCase() : '';
+                            if (st.includes('delivered') || st.includes('settled') || st.includes('success')) {
+                                deliveredCount++;
+                            } else if (st.includes('returned') || st.includes('fail') || st.includes('error')) {
+                                errorCount++;
+                            } else {
+                                transitCount++;
+                            }
+                        } else {
+                            errorCount++;
+                        }
+
+                        // Extract barcode and status for compact card
+                        const resolvedBarcode = result.barcode.toUpperCase();
+                        let statusText = 'Unknown';
+                        let statusClass = '';
+                        if (result.error) {
+                            statusText = result.error;
+                            statusClass = 'error';
+                        } else if (result.data && result.data.length > 0) {
+                            const sr = result.data.find(r => (r.col_0 || '').trim().toLowerCase() === 'status');
+                            if (sr) statusText = (sr.col_1 || '').trim();
+                            const sl = statusText.toLowerCase();
+                            if (sl.includes('delivered') || sl.includes('settled') || sl.includes('success')) statusClass = 'success';
+                            else if (sl.includes('returned') || sl.includes('fail') || sl.includes('error') || sl.includes('not')) statusClass = 'error';
+                            else statusClass = 'transit';
+                        }
+
+                        return `<div class="compact-card" onclick="this.classList.toggle('expanded')">
+                            <div class="compact-card-header">
+                                <div class="compact-card-info">
+                                    <span class="compact-barcode">${resolvedBarcode}</span>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </div>
+                                <svg class="compact-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                            <div class="compact-card-body">${cardHtml}</div>
+                        </div>`;
+                    }).join('');
+
+                    const dashboardHtml = `
+                        <div class="bulk-dashboard">
+                            <div class="bulk-stats">
+                                <div class="stat-card">
+                                    <span class="stat-number">${totalCount}</span>
+                                    <span class="stat-label">${t('bulk_total', 'Total')}</span>
+                                </div>
+                                <div class="stat-card stat-success">
+                                    <span class="stat-number">${deliveredCount}</span>
+                                    <span class="stat-label">${t('bulk_delivered', 'Delivered')}</span>
+                                </div>
+                                <div class="stat-card stat-transit">
+                                    <span class="stat-number">${transitCount}</span>
+                                    <span class="stat-label">${t('bulk_transit', 'In Transit')}</span>
+                                </div>
+                                <div class="stat-card stat-error">
+                                    <span class="stat-number">${errorCount}</span>
+                                    <span class="stat-label">${t('bulk_error', 'Error')}</span>
+                                </div>
+                            </div>
+                            <div class="bulk-actions">
+                                <button class="btn-expand-all" onclick="document.querySelectorAll('.compact-card').forEach(c => c.classList.add('expanded')); this.style.display='none'; this.nextElementSibling.style.display=''">
+                                    ${t('expand_all', 'Expand All')}
+                                </button>
+                                <button class="btn-expand-all" style="display:none" onclick="document.querySelectorAll('.compact-card').forEach(c => c.classList.remove('expanded')); this.style.display='none'; this.previousElementSibling.style.display=''">
+                                    ${t('collapse_all', 'Collapse All')}
+                                </button>
+                            </div>
+                            <div class="compact-cards-grid">
+                                ${cardsHtml}
+                            </div>
+                        </div>
+                    `;
+                    multiResultsSection.innerHTML = dashboardHtml;
+                } else {
+                    // --- STANDARD CARD MODE ---
+                    results.forEach(result => {
+                        const cardHtml = generateTrackingCard(result.barcode, result.data, result.error);
+                        multiResultsSection.insertAdjacentHTML('beforeend', cardHtml);
+
+                        if (result.error && result.error.toLowerCase().includes('captcha')) {
+                            hasCaptchaError = true;
+                        } else if (!result.error && result.data && result.data.length > 0) {
+                            successfulBarcodes.push(result.barcode.toUpperCase());
+                        }
+                    });
+                }
 
                 if (successfulBarcodes.length > 0) {
                     saveRecentSearches(successfulBarcodes);
@@ -634,3 +730,38 @@ window.exportPdf = function (btn) {
         alert('Failed to generate PDF. Check console for details.');
     });
 };
+
+// --- MOBILE BOTTOM NAVIGATION ---
+(() => {
+    const bottomNav = document.getElementById('bottom-nav');
+    if (!bottomNav) return;
+
+    const bottomItems = bottomNav.querySelectorAll('.bottom-nav-item[data-section]');
+    const sections = ['home', 'tools', 'calculators'];
+
+    // Scroll spy: highlight the bottom nav item matching the visible section
+    const updateActiveBottomNav = () => {
+        let current = 'home';
+        for (const id of sections) {
+            const section = document.getElementById(id);
+            if (section && section.getBoundingClientRect().top <= 150) {
+                current = id;
+            }
+        }
+        bottomItems.forEach(item => {
+            item.classList.toggle('active', item.dataset.section === current);
+        });
+    };
+
+    window.addEventListener('scroll', updateActiveBottomNav, { passive: true });
+    updateActiveBottomNav();
+
+    // Theme toggle in bottom nav
+    const bottomThemeBtn = document.getElementById('bottom-theme-toggle');
+    if (bottomThemeBtn) {
+        bottomThemeBtn.addEventListener('click', () => {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) themeToggle.click();
+        });
+    }
+})();
