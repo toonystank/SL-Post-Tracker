@@ -143,6 +143,7 @@ body {
     overflow-x: hidden;
     position: relative;
     transition: background-color 0.3s ease, color 0.3s ease;
+    width: 100%;
 }
 
 /* Background Animations */
@@ -602,12 +603,17 @@ input::placeholder {
     margin-bottom: 2.5rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    flex-wrap: wrap;
+    /* Added flex-wrap for title and buttons on small screens */
+    gap: 1rem;
 }
 
 .share-actions {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    flex-wrap: wrap;
+    /* Allows share buttons to wrap on very small screens */
 }
 
 .whatsapp-share-btn,
@@ -622,7 +628,9 @@ input::placeholder {
     text-decoration: none;
     cursor: pointer;
     transition: all 0.25s ease;
-    white-space: nowrap;
+    white-space: normal;
+    /* Let the text wrap naturally */
+    text-align: left;
     flex-shrink: 0;
     border: none;
 }
@@ -762,6 +770,9 @@ h2 {
     border-radius: 0.75rem;
     padding: 1rem 1.25rem;
     transition: background 0.2s, border-color 0.2s;
+    word-break: break-word;
+    /* Prevent long text like dates/locations from stretching the grid */
+    overflow: hidden;
 }
 
 .info-group:hover {
@@ -791,6 +802,8 @@ h2 {
     padding: 1rem;
     border-radius: 0.75rem;
     transition: transform 0.3s, background 0.3s;
+    word-break: break-word;
+    overflow: hidden;
 }
 
 .timeline-content:hover {
@@ -1629,11 +1642,11 @@ h2 {
         flex-direction: column;
         align-items: center;
         gap: 0.2rem;
-        padding: 0.35rem 0.75rem;
+        padding: 0.35rem 0.25rem;
         border-radius: 0.75rem;
         color: var(--text-secondary);
         text-decoration: none;
-        font-size: 0.65rem;
+        font-size: 0.55rem;
         font-weight: 500;
         transition: all 0.2s ease;
         background: none;
@@ -1641,6 +1654,13 @@ h2 {
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         position: relative;
+        text-align: center;
+        word-break: break-word;
+        /* Let long words wrap safely */
+        flex: 1;
+        /* Allow equal distribution naturally instead of forcing fixed widths */
+        max-width: 25%;
+        /* Limit to 4 items evenly */
     }
 
     .bottom-nav-item svg {
@@ -1722,25 +1742,31 @@ h2 {
 
 /* --- SCANNER STYLES --- */
 .scan-btn {
-    position: absolute;
-    right: 1.2rem;
-    top: 50%;
-    transform: translateY(-50%);
     background: transparent;
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 0.25rem;
-    display: flex;
+    padding: 0.4rem;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    border-radius: 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
 }
 
 .scan-btn:hover {
     color: var(--accent-1);
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(249, 115, 22, 0.1);
+}
+
+.scan-btn.keyboard-hidden {
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    transition: all 0.2s ease;
 }
 
 .modal {
@@ -1766,33 +1792,90 @@ h2 {
 }
 
 .modal-content {
-    background: var(--glass-bg);
-    border-radius: 12px;
+    background: var(--bg-color);
+    border-radius: 16px;
     width: 100%;
-    max-width: 500px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-width: 460px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     border: 1px solid var(--glass-border);
     overflow: hidden;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     transition: transform 0.3s ease;
 }
 
 .modal.hidden .modal-content {
-    transform: translateY(20px);
+    transform: translateY(20px) scale(0.97);
 }
 
 .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--glass-border);
 }
 
 .modal-header h3 {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 600;
+}
+
+/* Scanner Tabs */
+.scanner-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.scanner-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    position: relative;
+}
+
+.scanner-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.scanner-tab.active {
+    color: var(--accent-1);
+}
+
+.scanner-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 15%;
+    width: 70%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+    border-radius: 2px;
+}
+
+/* Scanner Panels */
+.scanner-panel {
+    min-height: 200px;
+}
+
+.scanner-hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    opacity: 0.8;
 }
 
 .scanner-content #reader {
@@ -1805,16 +1888,130 @@ h2 {
     width: 100%;
 }
 
-.scanner-content #reader__dashboard_section_csr button {
-    background: var(--accent-1);
+/* Hide the built-in html5-qrcode UI elements we don't need */
+.scanner-content #reader__dashboard_section_csr,
+.scanner-content #reader__dashboard_section_fsr,
+.scanner-content #reader__dashboard,
+.scanner-content #reader__header_message {
+    display: none !important;
+}
+
+/* Upload Area */
+.upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2.5rem 1.5rem;
+    margin: 1rem;
+    border: 2px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: center;
+    min-height: 180px;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+    border-color: var(--accent-1);
+    background: rgba(249, 115, 22, 0.05);
+}
+
+.upload-area svg {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    transition: all 0.25s ease;
+}
+
+.upload-area:hover svg,
+.upload-area.drag-over svg {
+    opacity: 0.8;
+    color: var(--accent-1);
+}
+
+.upload-area p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Upload Preview */
+.upload-preview {
+    padding: 0.75rem 1rem;
+    text-align: center;
+}
+
+.upload-preview img {
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* Upload Results */
+.upload-result {
+    padding: 0.75rem 1rem 1rem;
+}
+
+.scan-success,
+.scan-error {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    flex-wrap: wrap;
+}
+
+.scan-success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: var(--status-success);
+}
+
+.scan-error {
+    background: rgba(244, 63, 94, 0.1);
+    border: 1px solid rgba(244, 63, 94, 0.2);
+    color: var(--status-error);
+}
+
+.scan-success span,
+.scan-error span {
+    flex: 1;
+}
+
+.scanning-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.btn-use-barcode {
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
     font-family: inherit;
-    font-weight: 500;
-    margin-top: 5px;
+    white-space: nowrap;
+    margin-top: 0.25rem;
+    width: 100%;
+}
+
+.btn-use-barcode:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 /* Delivery Estimate Badge */
@@ -1834,4 +2031,22 @@ h2 {
     background: rgba(167, 139, 250, 0.15);
     color: var(--accent-1);
     border-color: rgba(167, 139, 250, 0.25);
+}
+
+/* Light theme overrides for scanner elements */
+[data-theme="light"] .upload-area {
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .upload-area:hover,
+[data-theme="light"] .upload-area.drag-over {
+    background: rgba(249, 115, 22, 0.04);
+}
+
+[data-theme="light"] .modal-content {
+    background: #fff;
+}
+
+[data-theme="light"] .scanner-tab:hover {
+    background: rgba(0, 0, 0, 0.03);
 }

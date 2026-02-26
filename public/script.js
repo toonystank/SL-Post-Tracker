@@ -49,6 +49,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Mobile Bottom Nav Language Toggle
+    const bottomLangToggle = document.getElementById('bottom-lang-toggle');
+    const bottomLangLabel = document.getElementById('bottom-lang-label');
+    if (bottomLangToggle && bottomLangLabel) {
+        // Set initial label
+        const langMap = { 'en': 'EN', 'si': 'සිං', 'ta': 'தமிழ்' };
+        bottomLangLabel.textContent = langMap[currentLang] || 'EN';
+
+        bottomLangToggle.addEventListener('click', () => {
+            const langs = ['en', 'si', 'ta'];
+            const currentIndex = langs.indexOf(currentLang);
+            const nextLang = langs[(currentIndex + 1) % langs.length];
+            translatePage(nextLang);
+            bottomLangLabel.textContent = langMap[nextLang];
+        });
+    }
+
     // --- THEME TOGGLE (Light/Dark) ---
     const savedTheme = localStorage.getItem('slpost_theme') ||
         (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
@@ -108,50 +125,335 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanBtn = document.getElementById('scan-btn');
     const scannerModal = document.getElementById('scanner-modal');
     const closeScannerBtn = document.getElementById('close-scanner');
-    let html5QrcodeScanner = null;
+    let html5Qrcode = null;
+    let isCameraRunning = false;
 
-    if (scanBtn && scannerModal) {
-        scanBtn.addEventListener('click', () => {
-            scannerModal.classList.remove('hidden');
+    // Barcode formats to detect (comprehensive list for postal barcodes)
+    const BARCODE_FORMATS = [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.CODABAR,
+        Html5QrcodeSupportedFormats.DATA_MATRIX,
+        Html5QrcodeSupportedFormats.AZTEC,
+    ];
 
-            if (!html5QrcodeScanner) {
-                // Initialize scanner
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader",
-                    { fps: 10, qrbox: { width: 250, height: 100 } },
-                    /* verbose= */ false
-                );
+    function handleScanSuccess(decodedText) {
+        // Auto-comma logic
+        const currentVal = barcodeInput.value.trim();
+        if (currentVal) {
+            if (currentVal.endsWith(',')) {
+                barcodeInput.value = currentVal + ' ' + decodedText + ', ';
+            } else {
+                barcodeInput.value = currentVal + ', ' + decodedText + ', ';
             }
+        } else {
+            barcodeInput.value = decodedText + ', ';
+        }
+        barcodeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
 
-            html5QrcodeScanner.render((decodedText) => {
-                // On success
-                html5QrcodeScanner.clear();
-                scannerModal.classList.add('hidden');
+    async function stopCamera() {
+        if (html5Qrcode && isCameraRunning) {
+            try {
+                await html5Qrcode.stop();
+            } catch (e) { /* ignore */ }
+            isCameraRunning = false;
+        }
+    }
 
-                // Auto-comma logic
-                const currentVal = barcodeInput.value.trim();
-                if (currentVal) {
-                    if (currentVal.endsWith(',')) {
-                        barcodeInput.value = currentVal + ' ' + decodedText + ', ';
-                    } else {
-                        barcodeInput.value = currentVal + ', ' + decodedText + ', ';
-                    }
-                } else {
-                    barcodeInput.value = decodedText + ', ';
-                }
-
-                // Trigger input event to update captcha visibility
-                barcodeInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }, (error) => {
-                // Ignore errors (usually just "not found yet")
+    async function startCamera() {
+        if (!html5Qrcode) {
+            html5Qrcode = new Html5Qrcode("reader", {
+                formatsToSupport: BARCODE_FORMATS,
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
             });
+        }
+
+        if (isCameraRunning) return;
+
+        const config = {
+            fps: 15,
+            qrbox: { width: 280, height: 120 },
+            aspectRatio: 1.0,
+            disableFlip: false,
+        };
+
+        try {
+            // Always prefer back camera (environment)
+            await html5Qrcode.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText) => {
+                    stopCamera();
+                    scannerModal.classList.add('hidden');
+                    handleScanSuccess(decodedText);
+                },
+                () => { /* ignore scan errors — just means not found yet */ }
+            );
+            isCameraRunning = true;
+        } catch (err) {
+            console.error('Camera start failed:', err);
+            // Fallback: try any available camera
+            try {
+                const cameras = await Html5Qrcode.getCameras();
+                if (cameras && cameras.length > 0) {
+                    // Try to find back camera by label, fallback to last camera
+                    const backCam = cameras.find(c =>
+                        /back|rear|environment/i.test(c.label)
+                    ) || cameras[cameras.length - 1];
+
+                    await html5Qrcode.start(
+                        backCam.id,
+                        config,
+                        (decodedText) => {
+                            stopCamera();
+                            scannerModal.classList.add('hidden');
+                            handleScanSuccess(decodedText);
+                        },
+                        () => { }
+                    );
+                    isCameraRunning = true;
+                } else {
+                    alert('No cameras found on this device.');
+                }
+            } catch (fallbackErr) {
+                console.error('Camera fallback failed:', fallbackErr);
+                alert('Could not access camera. Please check permissions in your browser settings.');
+            }
+        }
+    }
+
+    // Scanner modal tabs
+    const scannerTabs = document.querySelectorAll('.scanner-tab');
+    const cameraPanel = document.getElementById('scanner-camera-panel');
+    const uploadPanel = document.getElementById('scanner-upload-panel');
+
+    scannerTabs.forEach(tab => {
+        tab.addEventListener('click', async () => {
+            scannerTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            if (tab.dataset.tab === 'camera') {
+                uploadPanel.classList.add('hidden');
+                cameraPanel.classList.remove('hidden');
+                await startCamera();
+            } else {
+                await stopCamera();
+                cameraPanel.classList.add('hidden');
+                uploadPanel.classList.remove('hidden');
+            }
+        });
+    });
+
+    // File upload scanning
+    const fileInput = document.getElementById('scanner-file-input');
+    const uploadDropArea = document.getElementById('upload-drop-area');
+    const uploadPreview = document.getElementById('upload-preview');
+    const uploadResult = document.getElementById('upload-result');
+
+    if (uploadDropArea && fileInput) {
+        uploadDropArea.addEventListener('click', () => fileInput.click());
+
+        uploadDropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadDropArea.classList.add('drag-over');
+        });
+        uploadDropArea.addEventListener('dragleave', () => {
+            uploadDropArea.classList.remove('drag-over');
+        });
+        uploadDropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadDropArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
         });
 
-        closeScannerBtn.addEventListener('click', () => {
-            if (html5QrcodeScanner) {
-                try { html5QrcodeScanner.clear(); } catch (e) { }
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFileUpload(fileInput.files[0]);
             }
+        });
+    }
+
+    async function handleFileUpload(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+
+        // Show preview
+        uploadPreview.innerHTML = '';
+        uploadPreview.classList.remove('hidden');
+        uploadResult.classList.add('hidden');
+        uploadResult.innerHTML = '';
+
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '8px';
+        uploadPreview.appendChild(img);
+
+        // Create a temporary scanner for file scanning
+        const fileScanQr = new Html5Qrcode("upload-preview", {
+            formatsToSupport: BARCODE_FORMATS,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+        });
+
+        uploadResult.classList.remove('hidden');
+        uploadResult.innerHTML = '<div class="scanning-indicator"><div class="small-loader"></div> Analyzing image...</div>';
+
+        try {
+            const result = await fileScanQr.scanFile(file, /* showImage= */ false);
+            uploadResult.innerHTML = `
+                <div class="scan-success">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Found: <strong>${escapeHtml(result)}</strong></span>
+                    <button type="button" class="btn-use-barcode" id="use-scanned-barcode">Use This Barcode</button>
+                </div>
+            `;
+            document.getElementById('use-scanned-barcode').addEventListener('click', () => {
+                handleScanSuccess(result);
+                scannerModal.classList.add('hidden');
+                resetUploadUI();
+            });
+        } catch (err) {
+            // Barcode scan failed — try OCR fallback to read printed text
+            uploadResult.innerHTML = '<div class="scanning-indicator"><div class="small-loader"></div> Barcode not detected, trying text recognition...</div>';
+
+            const ocrResult = await tryOCRFallback(file);
+            if (ocrResult) {
+                uploadResult.innerHTML = `
+                    <div class="scan-success">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        <span>Found via text: <strong>${escapeHtml(ocrResult)}</strong></span>
+                        <button type="button" class="btn-use-barcode" id="use-scanned-barcode">Use This Barcode</button>
+                    </div>
+                `;
+                document.getElementById('use-scanned-barcode').addEventListener('click', () => {
+                    handleScanSuccess(ocrResult);
+                    scannerModal.classList.add('hidden');
+                    resetUploadUI();
+                });
+            } else {
+                uploadResult.innerHTML = `
+                    <div class="scan-error">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        <span>No barcode or tracking number detected. Try a clearer, well-lit photo with the barcode fully visible.</span>
+                    </div>
+                `;
+            }
+        } finally {
+            try { await fileScanQr.clear(); } catch (e) { }
+        }
+    }
+
+    // SL Post barcode pattern: starts with BD, BF, BG, or RA and ends with LK
+    // Standard UPU S10 format: 2 letters + 9 digits + 2 letter country code (13 chars)
+    const SL_POST_PATTERN = /\b(B[DFG]|RA)\d{9}LK\b/gi;
+
+    // Extract SL Post tracking code from OCR text
+    function extractSLPostCode(text) {
+        if (!text) return null;
+        // Clean up OCR artifacts: common misreads
+        const cleaned = text
+            .replace(/[|l]/g, (m, offset, str) => {
+                // Only replace | and l with 1 if surrounded by digits
+                const prev = str[offset - 1];
+                const next = str[offset + 1];
+                if (prev && next && /\d/.test(prev) && /\d/.test(next)) return '1';
+                return m;
+            })
+            .replace(/O(?=\d)/g, '0')  // O before digit → 0
+            .replace(/(?<=\d)O/g, '0') // O after digit → 0
+            .replace(/\s/g, '');       // Remove spaces within codes
+
+        const matches = cleaned.match(SL_POST_PATTERN);
+        if (matches && matches.length > 0) {
+            return matches[0].toUpperCase();
+        }
+        return null;
+    }
+
+    // OCR fallback using Tesseract.js
+    async function tryOCRFallback(file) {
+        if (typeof Tesseract === 'undefined') {
+            console.warn('Tesseract.js not loaded, OCR unavailable');
+            return null;
+        }
+
+        try {
+            const { data } = await Tesseract.recognize(file, 'eng', {
+                logger: () => { } // suppress progress logs
+            });
+            return extractSLPostCode(data.text);
+        } catch (ocrErr) {
+            console.error('OCR failed:', ocrErr);
+            return null;
+        }
+    }
+
+    function resetUploadUI() {
+        if (uploadPreview) { uploadPreview.innerHTML = ''; uploadPreview.classList.add('hidden'); }
+        if (uploadResult) { uploadResult.innerHTML = ''; uploadResult.classList.add('hidden'); }
+        if (fileInput) fileInput.value = '';
+    }
+
+    // Open scanner modal
+    if (scanBtn && scannerModal) {
+        scanBtn.addEventListener('click', async () => {
+            scannerModal.classList.remove('hidden');
+            // Default to camera tab
+            scannerTabs.forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="camera"]')?.classList.add('active');
+            if (cameraPanel) cameraPanel.classList.remove('hidden');
+            if (uploadPanel) uploadPanel.classList.add('hidden');
+            resetUploadUI();
+            await startCamera();
+        });
+
+        closeScannerBtn.addEventListener('click', async () => {
+            await stopCamera();
             scannerModal.classList.add('hidden');
+            resetUploadUI();
+        });
+
+        // Close on backdrop click
+        scannerModal.addEventListener('click', async (e) => {
+            if (e.target === scannerModal) {
+                await stopCamera();
+                scannerModal.classList.add('hidden');
+                resetUploadUI();
+            }
+        });
+    }
+
+    // --- KEYBOARD VISIBILITY DETECTION ---
+    // Hide scan button when keyboard is open, show when closed
+    if (window.visualViewport && scanBtn) {
+        const initialHeight = window.visualViewport.height;
+        window.visualViewport.addEventListener('resize', () => {
+            // If viewport shrinks significantly, keyboard is likely open
+            const heightDiff = initialHeight - window.visualViewport.height;
+            if (heightDiff > 100) {
+                scanBtn.classList.add('keyboard-hidden');
+            } else {
+                scanBtn.classList.remove('keyboard-hidden');
+            }
         });
     }
 
@@ -756,8 +1058,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Derive status from the latest event
                 if (validEvents.length > 0) {
                     const latestEvent = (validEvents[validEvents.length - 1].col_2 || '').toLowerCase();
-                    if (latestEvent.includes('deliver') && (latestEvent.includes('success') || latestEvent.includes('delivered to'))) {
+                    if (latestEvent.includes('deliver') && (latestEvent.includes('success') || latestEvent.includes('item delivered') || latestEvent.includes('delivered to'))) {
                         statusText = 'Delivered';
+                    } else if (latestEvent.includes('handed over to post man') || latestEvent.includes('handed over to postman')) {
+                        statusText = 'Out for delivery';
                     } else if (latestEvent.includes('receive') && latestEvent.includes('delivery office')) {
                         statusText = 'Arrived at Delivery Office';
                     } else if (latestEvent.includes('send') && latestEvent.includes('delivery')) {
@@ -776,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lastLocation = validEvents.length > 0 ? (validEvents[validEvents.length - 1].col_4 || '').trim() : '';
 
                 // Build progress stepper for SLP courier
-                const slpSteps = ['Accepted', 'In Transit', 'Arrived', 'Delivered'];
+                const slpSteps = ['Accepted', 'In Transit', 'Arrived', 'Out for delivery', 'Delivered'];
                 let slpActiveStep = 0;
                 let slpIsError = false;
                 const slpStatus = statusText.toLowerCase();
@@ -787,12 +1091,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (slpStatus.includes('arrived') || (slpStatus.includes('receive') && slpStatus.includes('delivery'))) {
                     slpActiveStep = Math.max(slpActiveStep, 2);
                 }
-                if (slpStatus.includes('delivered') || slpStatus.includes('success')) {
+                if (slpStatus.includes('out for delivery') || slpStatus.includes('post man') || slpStatus.includes('postman')) {
                     slpActiveStep = Math.max(slpActiveStep, 3);
                 }
+                if (slpStatus.includes('delivered') || slpStatus.includes('success')) {
+                    slpActiveStep = Math.max(slpActiveStep, 4);
+                }
                 if (slpStatus.includes('return')) {
-                    slpSteps[3] = 'Returned';
-                    slpActiveStep = 3;
+                    slpSteps[4] = 'Returned';
+                    slpActiveStep = 4;
                     slpIsError = true;
                 }
 
@@ -800,6 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     firstLocation ? `Accepted at ${firstLocation}` : 'Accepted',
                     firstLocation ? `Dispatched from ${firstLocation}` : 'In Transit',
                     lastLocation ? `Arrived at ${lastLocation}` : 'Arrived',
+                    lastLocation ? `Out for delivery from ${lastLocation}` : 'Out for delivery',
                     slpIsError
                         ? (lastLocation ? `Returned from ${lastLocation}` : 'Returned')
                         : (lastLocation ? `Delivered at ${lastLocation}` : 'Delivered')
@@ -1171,7 +1479,7 @@ window.exportPdf = async function (btn) {
     if (!bottomNav) return;
 
     const bottomItems = bottomNav.querySelectorAll('.bottom-nav-item[data-section]');
-    const sections = ['home', 'tools', 'calculators'];
+    const sections = ['home', 'tools'];
 
     // Scroll spy: highlight the bottom nav item matching the visible section
     const updateActiveBottomNav = () => {

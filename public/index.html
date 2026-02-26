@@ -191,7 +191,7 @@
             <nav id="navbar">
                 <a href="#home" class="nav-link active" data-i18n="nav_home">Home</a>
                 <a href="#tools" class="nav-link" data-i18n="nav_track">Track Package</a>
-                <a href="#calculators" class="nav-link" data-i18n="nav_calc">Calculators</a>
+                <!-- <a href="#calculators" class="nav-link" data-i18n="nav_calc">Calculators</a> -->
                 <div class="lang-switcher">
                     <button class="lang-btn active" data-lang="en">EN</button>
                     <button class="lang-btn" data-lang="si">සිං</button>
@@ -315,8 +315,8 @@
                 </div>
             </div>
 
-            <!-- Calculators Embed -->
-            <div id="calculators" class="glass-panel main-tracker mt-2" style="margin-top: 3rem; padding: 2.5rem;">
+            <!-- Calculators Embed Section Removed For Now -->
+            <!-- <div id="calculators" class="glass-panel main-tracker mt-2" style="margin-top: 3rem; padding: 2.5rem;">
                 <div class="tab-header">
                     <h2 data-i18n="calc_title">Cost Calculators</h2>
                     <p data-i18n="calc_subtitle">Select a calculator to securely connect to official Sri Lanka Post
@@ -336,7 +336,7 @@
                     <iframe id="calc-iframe" src="about:blank" data-src="https://bepost.lk/m/cal/" frameborder="0"
                         title="SL Post Calculator" loading="lazy"></iframe>
                 </div>
-            </div>
+            </div> -->
         </section>
     </main>
 
@@ -372,7 +372,7 @@
             </svg>
             <span data-i18n="nav_track">Track</span>
         </a>
-        <a href="#calculators" class="bottom-nav-item" data-section="calculators">
+        <!-- <a href="#calculators" class="bottom-nav-item" data-section="calculators">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <rect x="4" y="2" width="16" height="20" rx="2"></rect>
@@ -385,7 +385,7 @@
                 <line x1="14" y1="18" x2="16" y2="18"></line>
             </svg>
             <span data-i18n="nav_calc">Calc</span>
-        </a>
+        </a> -->
         <button class="bottom-nav-item" id="bottom-theme-toggle">
             <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -404,6 +404,16 @@
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
             <span>Theme</span>
+        </button>
+        <button class="bottom-nav-item" id="bottom-lang-toggle">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                </path>
+            </svg>
+            <span id="bottom-lang-label">EN</span>
         </button>
     </nav>
 
@@ -425,7 +435,44 @@
                     </svg>
                 </button>
             </div>
-            <div id="reader" style="width: 100%; min-height: 250px;"></div>
+            <div class="scanner-tabs">
+                <button class="scanner-tab active" data-tab="camera">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                        </path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    Camera
+                </button>
+                <button class="scanner-tab" data-tab="upload">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload Image
+                </button>
+            </div>
+            <div id="scanner-camera-panel" class="scanner-panel">
+                <div id="reader" style="width: 100%;"></div>
+                <p class="scanner-hint">Point your back camera at a barcode</p>
+            </div>
+            <div id="scanner-upload-panel" class="scanner-panel hidden">
+                <div class="upload-area" id="upload-drop-area">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <p>Tap to select or drop a barcode image</p>
+                    <input type="file" id="scanner-file-input" accept="image/*" hidden>
+                </div>
+                <div id="upload-preview" class="upload-preview hidden"></div>
+                <div id="upload-result" class="upload-result hidden"></div>
+            </div>
         </div>
     </div>
 
@@ -439,6 +486,7 @@
             });
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script src="https://unpkg.com/html5-qrcode" defer></script>
     <script src="/translations.js" defer></script>
     <script src="/script.js" defer></script>
