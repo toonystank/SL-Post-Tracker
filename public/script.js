@@ -889,6 +889,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function trackCOD(barcode) {
+        // Google Analytics: track COD parcel search
+        if (typeof gtag === 'function') {
+            gtag('event', 'track_parcel', {
+                tracking_type: 'COD',
+                barcode_prefix: barcode.trim().substring(0, 2).toUpperCase()
+            });
+        }
         try {
             const response = await fetch('/api/track', {
                 method: 'POST',
@@ -904,6 +911,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function trackCourier(barcode, captcha) {
+        // Google Analytics: track SLP Courier parcel search
+        if (typeof gtag === 'function') {
+            gtag('event', 'track_parcel', {
+                tracking_type: 'SLP_Courier',
+                barcode_prefix: barcode.trim().substring(0, 2).toUpperCase()
+            });
+        }
         try {
             const response = await fetch('/api/courier/track', {
                 method: 'POST',
@@ -920,6 +934,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fallback tracker for ambiguous codes (RA, BG): Try COD first, SLP if no results
     async function trackWithFallback(barcode) {
+        // Google Analytics: track ambiguous parcel search (COD first, then SLP fallback)
+        if (typeof gtag === 'function') {
+            gtag('event', 'track_parcel', {
+                tracking_type: 'Ambiguous',
+                barcode_prefix: barcode.trim().substring(0, 2).toUpperCase()
+            });
+        }
         // Step 1: Try COD (fast, no captcha)
         const codResult = await trackCOD(barcode);
         if (codResult.data && codResult.data.length > 0) {
